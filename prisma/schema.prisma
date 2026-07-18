@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Season {
+  id          String      @id @default(cuid())
+  title       String
+  tagline     String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  phases      Phase[]
+  candidates  Candidate[]
+  packages    VotePackage[]
+}
+
+model Phase {
+  id          String       @id @default(cuid())
+  seasonId    String
+  number      Int
+  title       String
+  theme       String?
+  status      String       @default("upcoming")
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  entries     PhaseEntry[]
+  votes       Vote[]
+  transactions Transaction[]
+
+  @@unique([seasonId, number])
+}
+
+model Candidate {
+  id              String       @id @default(cuid())
+  seasonId        String
+  stageName       String
+  slug            String       @unique
+  city            String?
+  bio             String?
+  photoUrl        String?
+  audioUrl        String?
+  phoneOrange     String?
+  phoneMtn        String?
+  totalVotes      Int          @default(0)
+  totalEarnedXaf  Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  season          Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  entries         PhaseEntry[]
+  votes           Vote[]
+  transactions    Transaction[]
+}
+
+model PhaseEntry {
+  id          String    @id @default(cuid())
+  phaseId     String
+  candidateId String
+  status      String    @default("active")
+  votesCount  Int       @default(0)
+  juryScore   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  phase       Phase     @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  juryScores  JuryScore[]
+
+  @@unique([phaseId, candidateId])
+}
+
+model Jury {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  scores       JuryScore[]
+}
+
+model JuryScore {
+  id           String     @id @default(cuid())
+  juryId       String
+  phaseEntryId String
+  score        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  jury         Jury       @relation(fields: [juryId], references: [id], onDelete: Cascade)
+  phaseEntry   PhaseEntry @relation(fields: [phaseEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([juryId, phaseEntryId])
+}
+
+model VotePackage {
+  id          String   @id @default(cuid())
+  seasonId    String
+  label       String
+  votesCount  Int
+  priceXaf    Int
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  season      Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id               String    @id @default(cuid())
+  reference        String    @unique
+  seasonId         String?
+  phaseId          String
+  candidateId      String
+  packageId        String
+  voterPhone       String
+  operator         String
+  votesCount       Int
+  amountXaf        Int
+  candidateShareXaf Int      @default(0)
+  adminShareXaf    Int       @default(0)
+  status           String    @default("pending")
+  campayRef        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  paidAt           DateTime?
+  phase            Phase     @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  candidate        Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  package          VotePackage @relation(fields: [packageId], references: [id])
+  votes            Vote[]
+}
+
+model Vote {
+  id            String   @id @default(cuid())
+  phaseId       String
+  candidateId   String
+  transactionId String
+  votesCount    Int
+  createdAt     DateTime @default(now())
+  phase         Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}

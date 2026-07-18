@@ -1,0 +1,36 @@
+import type { Metadata } from "next";
+import { Bebas_Neue, Manrope } from "next/font/google";
+import { SiteHeader } from "@/components/SiteHeader";
+import "./globals.css";
+
+const display = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
+const body = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+});
+
+export const metadata: Metadata = {
+  title: "RapVote · N£₩ St@r ₽uN€h",
+  description:
+    "Compétition rap New Star Punch. Parcours d'épisodes, jury et votes public via Orange Money et MTN Money.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="fr" className={`${display.variable} ${body.variable} h-full`}>
+      <body className="min-h-full antialiased">
+        <SiteHeader />
+        {children}
+      </body>
+    </html>
+  );
+}
