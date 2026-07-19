@@ -3,12 +3,22 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 
-const ADMIN_COOKIE = "fortheculture_admin";
-const JURY_COOKIE = "fortheculture_jury";
+export const ADMIN_COOKIE = "fortheculture_admin";
+export const JURY_COOKIE = "fortheculture_jury";
+
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 7,
+};
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET manquant");
+  if (!secret) {
+    throw new Error("AUTH_SECRET manquant sur le serveur");
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -20,21 +30,30 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createAdminSession(adminId: string) {
-  const token = await new SignJWT({ sub: adminId, role: "admin" })
+export async function createAdminToken(adminId: string) {
+  return new SignJWT({ sub: adminId, role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
     .sign(getSecret());
+}
 
+export async function createJuryToken(juryId: string) {
+  return new SignJWT({ sub: juryId, role: "jury" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(getSecret());
+}
+
+export function getSessionCookieOptions() {
+  return cookieOptions;
+}
+
+export async function createAdminSession(adminId: string) {
+  const token = await createAdminToken(adminId);
   const jar = await cookies();
-  jar.set(ADMIN_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  jar.set(ADMIN_COOKIE, token, cookieOptions);
 }
 
 export async function destroyAdminSession() {
@@ -65,20 +84,9 @@ export async function requireAdmin() {
 }
 
 export async function createJurySession(juryId: string) {
-  const token = await new SignJWT({ sub: juryId, role: "jury" })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(getSecret());
-
+  const token = await createJuryToken(juryId);
   const jar = await cookies();
-  jar.set(JURY_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  jar.set(JURY_COOKIE, token, cookieOptions);
 }
 
 export async function destroyJurySession() {

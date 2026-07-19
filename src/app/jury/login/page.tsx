@@ -19,7 +19,15 @@ export default function JuryLoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const raw = await res.text();
+    let data: { error?: string; ok?: boolean } = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      setError("Réponse serveur invalide. Vérifie AUTH_SECRET et DATABASE_URL sur Netlify.");
+      setLoading(false);
+      return;
+    }
     if (!res.ok) {
       setError(data.error ?? "Connexion impossible");
       setLoading(false);
