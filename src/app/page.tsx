@@ -16,7 +16,7 @@ function SetupMessage({ message }: { message: string }) {
   return (
     <main className="shell">
       <div className="hero">
-        <p className="hero-kicker">RapVote · New Star Punch</p>
+        <p className="hero-kicker">ForTheCulture · New Star Punch</p>
         <h1>Configuration requise</h1>
         <p>{message}</p>
         <p className="muted" style={{ marginTop: "1rem" }}>
@@ -42,7 +42,7 @@ export default async function HomePage() {
     return (
       <main className="shell">
         <div className="hero">
-          <p className="hero-kicker">RapVote Cameroun</p>
+          <p className="hero-kicker">ForTheCulture Cameroun</p>
           <h1>La scène arrive</h1>
           <p>Aucune saison active pour le moment. Reviens bientôt.</p>
         </div>
@@ -91,7 +91,7 @@ export default async function HomePage() {
         </div>
         <div className="hero-copy">
           <p className="hero-kicker">Rap · Cameroun · New Star Punch</p>
-          <h1>RapVote</h1>
+          <h1>ForTheCulture</h1>
           <p>
             {season.tagline ??
               "Du freestyle à l'œuvre ultime. Jury, public, et un seul champion."}

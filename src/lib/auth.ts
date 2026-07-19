@@ -3,8 +3,8 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 
-const ADMIN_COOKIE = "rapvote_admin";
-const JURY_COOKIE = "rapvote_jury";
+const ADMIN_COOKIE = "fortheculture_admin";
+const JURY_COOKIE = "fortheculture_jury";
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;

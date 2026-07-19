@@ -26,8 +26,8 @@ export default async function AdminLayout({
   return (
     <div className="admin-shell">
       <div className="brand admin-brand">
-        <span className="brand-mark">RV</span>
-        <span className="brand-name">RapVote Admin</span>
+        <span className="brand-mark">FC</span>
+        <span className="brand-name">ForTheCulture Admin</span>
       </div>
       <nav className="admin-nav">
         {admin

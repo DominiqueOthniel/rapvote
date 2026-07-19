@@ -18,8 +18,8 @@ export default async function JuryLayout({
   return (
     <div className="admin-shell">
       <div className="brand admin-brand">
-        <span className="brand-mark">JV</span>
-        <span className="brand-name">RapVote Jury</span>
+        <span className="brand-mark">FC</span>
+        <span className="brand-name">ForTheCulture Jury</span>
       </div>
       <nav className="admin-nav">
         {jury ? (

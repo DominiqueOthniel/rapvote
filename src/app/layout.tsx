@@ -15,7 +15,7 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "RapVote · N£₩ St@r ₽uN€h",
+  title: "ForTheCulture · N£₩ St@r ₽uN€h",
   description:
     "Compétition rap New Star Punch. Parcours d'épisodes, jury et votes public via Orange Money et MTN Money.",
 };

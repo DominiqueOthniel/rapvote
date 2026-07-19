@@ -64,7 +64,7 @@ export function ArtistCards({ artists }: Props) {
               <p>
                 {wasted
                   ? "Éliminé de la compétition."
-                  : (artist.bio ?? "En compétition sur RapVote Cameroun.")}
+                  : (artist.bio ?? "En compétition sur ForTheCulture.")}
               </p>
               <div className="artist-card-foot">
                 {typeof artist.votesCount === "number" ? (

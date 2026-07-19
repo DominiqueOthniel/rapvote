@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function JuryLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("jury1@rapvote.cm");
+  const [email, setEmail] = useState("jury1@fortheculture.cm");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

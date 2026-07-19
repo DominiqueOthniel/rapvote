@@ -76,17 +76,17 @@ async function main() {
   const passwordHash = await bcrypt.hash("admin123", 10);
   await prisma.admin.create({
     data: {
-      email: "admin@rapvote.cm",
-      name: "Admin RapVote",
+      email: "admin@fortheculture.cm",
+      name: "Admin ForTheCulture",
       passwordHash,
     },
   });
 
   const juryPassword = await bcrypt.hash("jury123", 10);
   const juryProfiles = [
-    { email: "jury1@rapvote.cm", name: "Jury 1" },
-    { email: "jury2@rapvote.cm", name: "Jury 2" },
-    { email: "jury3@rapvote.cm", name: "Jury 3" },
+    { email: "jury1@fortheculture.cm", name: "Jury 1" },
+    { email: "jury2@fortheculture.cm", name: "Jury 2" },
+    { email: "jury3@fortheculture.cm", name: "Jury 3" },
   ];
   for (const profile of juryProfiles) {
     await prisma.jury.create({
@@ -151,8 +151,8 @@ async function main() {
   }
 
   console.log("Seed OK");
-  console.log("Admin: admin@rapvote.cm / admin123");
-  console.log("Jury: jury1@rapvote.cm · jury2@rapvote.cm · jury3@rapvote.cm / jury123");
+  console.log("Admin: admin@fortheculture.cm / admin123");
+  console.log("Jury: jury1@fortheculture.cm · jury2@fortheculture.cm · jury3@fortheculture.cm / jury123");
   console.log(`Saison: ${season.title}`);
   console.log(`Candidats: ${createdCandidates.length}`);
   console.log(`Épisodes: ${EPISODES.length}`);

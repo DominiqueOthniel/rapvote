@@ -15,9 +15,9 @@ const prisma = new PrismaClient({
 async function main() {
   const hash = await bcrypt.hash("jury123", 10);
   const profiles = [
-    { email: "jury1@rapvote.cm", name: "Jury 1" },
-    { email: "jury2@rapvote.cm", name: "Jury 2" },
-    { email: "jury3@rapvote.cm", name: "Jury 3" },
+    { email: "jury1@fortheculture.cm", name: "Jury 1" },
+    { email: "jury2@fortheculture.cm", name: "Jury 2" },
+    { email: "jury3@fortheculture.cm", name: "Jury 3" },
   ];
 
   for (const profile of profiles) {

@@ -53,7 +53,7 @@ export default async function CandidatePage({ params }: Props) {
           <p className="muted">{candidate.city ?? "Cameroun"}</p>
           <h1>{candidate.stageName}</h1>
           <p className="candidate-bio">
-            {candidate.bio ?? "Artiste en compétition RapVote."}
+            {candidate.bio ?? "Artiste en compétition ForTheCulture."}
           </p>
           <div className="candidate-stats">
             <div>

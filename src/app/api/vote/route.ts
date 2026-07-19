@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const reference = `RV-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const reference = `FTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const payment = await collectPayment({
       amount: votePackage.priceXaf,
       phone,
-      description: `RapVote ${votePackage.votesCount} vote(s) pour ${candidate.stageName}`,
+      description: `ForTheCulture ${votePackage.votesCount} vote(s) pour ${candidate.stageName}`,
       externalReference: reference,
     });
 

@@ -1,4 +1,4 @@
-# RapVote · N£₩ St@r ₽uN€h
+# ForTheCulture · N£₩ St@r ₽uN€h
 
 Compétition rap (New Star Punch) avec parcours d'épisodes, notation jury (3 profils), votes public Orange Money / MTN Money, split 50/50 artiste / organisation.
 
@@ -39,13 +39,13 @@ Ouvre [http://localhost:3000](http://localhost:3000)
 ## Admin
 
 - URL: `/admin/login`
-- Email: `admin@rapvote.cm`
+- Email: `admin@fortheculture.cm`
 - Mot de passe: `admin123`
 
 ## Jury
 
 - URL: `/jury/login`
-- `jury1@rapvote.cm` · `jury2@rapvote.cm` · `jury3@rapvote.cm`
+- `jury1@fortheculture.cm` · `jury2@fortheculture.cm` · `jury3@fortheculture.cm`
 - Mot de passe: `jury123`
 - Notes sur 10, moyenne auto, 85% du score final (votes 15%)
 
