@@ -28,6 +28,9 @@ export default async function JuryLayout({
             <Link className="btn-ghost" href="/jury">
               Notation
             </Link>
+            <Link className="btn-ghost" href="/jury/compte">
+              Mon compte
+            </Link>
             <form action={logout}>
               <button className="btn-secondary" type="submit">
                 Déconnexion

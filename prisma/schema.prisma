@@ -72,6 +72,7 @@ model Candidate {
   entries         PhaseEntry[]
   votes           Vote[]
   transactions    Transaction[]
+  payouts         Payout[]
 }
 
 model PhaseEntry {
@@ -162,4 +163,21 @@ model Vote {
   phase         Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Payout {
+  id            String    @id @default(cuid())
+  candidateId   String
+  amountXaf     Int
+  phone         String
+  channel       String
+  reference     String    @unique
+  notchId       String?
+  status        String    @default("pending")
+  description   String?
+  failureReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }

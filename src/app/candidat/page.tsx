@@ -13,6 +13,7 @@ import { formatJuryNote } from "@/lib/scoring";
 import { formatVotes, formatXaf } from "@/lib/money";
 import { deleteCandidatePhotoFile, saveCandidatePhoto } from "@/lib/upload";
 import { COMPETITION_BRAND } from "@/lib/parcours";
+import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,12 @@ export default async function CandidateDashboardPage() {
         })
       : null;
 
+  const paidOut = await getCandidatePaidOutXaf(candidate.id);
+  const balanceDue = await getCandidateBalanceDue(
+    candidate.id,
+    candidate.totalEarnedXaf,
+  );
+
   return (
     <main>
       <h1 className="page-title">Mon espace</h1>
@@ -159,6 +166,14 @@ export default async function CandidateDashboardPage() {
             <li>
               <span className="muted">Gains (50%)</span>
               <strong>{formatXaf(candidate.totalEarnedXaf)}</strong>
+            </li>
+            <li>
+              <span className="muted">Déjà versé / en cours</span>
+              <strong>{formatXaf(paidOut)}</strong>
+            </li>
+            <li>
+              <span className="muted">Reste à verser</span>
+              <strong>{formatXaf(balanceDue)}</strong>
             </li>
           </ul>
           <p style={{ marginTop: "1rem" }}>
