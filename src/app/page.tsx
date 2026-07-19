@@ -8,11 +8,36 @@ import {
   getPhaseEntries,
   getPhaseRanking,
 } from "@/lib/competition";
+import { getEpisodeByNumber } from "@/lib/parcours";
 
 export const dynamic = "force-dynamic";
 
+function SetupMessage({ message }: { message: string }) {
+  return (
+    <main className="shell">
+      <div className="hero">
+        <p className="hero-kicker">RapVote · New Star Punch</p>
+        <h1>Configuration requise</h1>
+        <p>{message}</p>
+        <p className="muted" style={{ marginTop: "1rem" }}>
+          Sur Netlify, ajoute TURSO_DATABASE_URL, TURSO_AUTH_TOKEN et AUTH_SECRET,
+          puis relance un déploiement.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export default async function HomePage() {
-  const season = await getActiveSeason();
+  let season;
+  try {
+    season = await getActiveSeason();
+  } catch {
+    return (
+      <SetupMessage message="Impossible de joindre la base de données. Vérifie les variables d'environnement Netlify." />
+    );
+  }
+
   if (!season) {
     return (
       <main className="shell">
@@ -47,6 +72,8 @@ export default async function HomePage() {
     rank: entry.status === "active" ? ++activeRank : undefined,
     eliminated: entry.status === "eliminated",
   }));
+
+  const episode = phase ? getEpisodeByNumber(phase.number) : null;
 
   return (
     <main>
@@ -85,9 +112,11 @@ export default async function HomePage() {
           <div className="section-head">
             <div>
               <p className="muted">
-                {phase
-                  ? `Phase ${phase.number} · ${phase.theme ?? phase.title}`
-                  : "Candidats"}
+                {episode
+                  ? `${episode.code} · ${episode.title}`
+                  : phase
+                    ? `Phase ${phase.number} · ${phase.theme ?? phase.title}`
+                    : "Candidats"}
               </p>
               <h2>Les artistes</h2>
             </div>

@@ -47,4 +47,26 @@ CAMPAY_BASE_URL=https://www.campay.net/api
 
 ## Stack
 
-Next.js, Prisma, SQLite, Campay (Orange Money + MTN Money Cameroun)
+Next.js, Prisma, SQLite (local) / Turso libSQL (Netlify), Campay (Orange Money + MTN Money Cameroun)
+
+## Déploiement Netlify
+
+SQLite fichier local ne fonctionne pas sur Netlify (serverless). Utilise Turso :
+
+1. Crée une base sur [turso.tech](https://turso.tech)
+2. Dans Netlify → Site settings → Environment variables :
+   - `TURSO_DATABASE_URL` = `libsql://...`
+   - `TURSO_AUTH_TOKEN` = ton token
+   - `AUTH_SECRET` = une longue chaîne aléatoire
+   - `DATABASE_URL` = la même URL Turso (pour Prisma CLI)
+3. Applique le schéma puis seed depuis ta machine :
+
+```bash
+set TURSO_DATABASE_URL=libsql://...
+set TURSO_AUTH_TOKEN=...
+set DATABASE_URL=%TURSO_DATABASE_URL%
+npx prisma db push
+npm run db:seed
+```
+
+4. Redeploy le site Netlify
