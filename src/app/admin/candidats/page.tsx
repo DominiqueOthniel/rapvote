@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import Image from "next/image";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveSeason, uniqueCandidateSlug } from "@/lib/competition";
+import { getActiveSeason } from "@/lib/competition";
 import { formatVotes, formatXaf } from "@/lib/money";
-import { saveCandidatePhoto, deleteCandidatePhotoFile } from "@/lib/upload";
+import { deleteCandidatePhotoFile } from "@/lib/upload";
 import { DeleteCandidateButton } from "@/components/admin/DeleteCandidateButton";
 
 export const dynamic = "force-dynamic";
@@ -16,52 +16,6 @@ function revalidateCandidateViews() {
   revalidatePath("/");
   revalidatePath("/classement");
   revalidatePath("/admin/phases");
-}
-
-async function createCandidate(formData: FormData) {
-  "use server";
-  const admin = await getAdminSession();
-  if (!admin) redirect("/admin/login");
-
-  const season = await getActiveSeason();
-  if (!season) throw new Error("Aucune saison active");
-
-  const stageName = String(formData.get("stageName") ?? "").trim();
-  const city = String(formData.get("city") ?? "").trim();
-  const bio = String(formData.get("bio") ?? "").trim();
-  if (!stageName) return;
-
-  const slug = await uniqueCandidateSlug(stageName);
-
-  const photo = formData.get("photo");
-  let photoUrl: string | null = null;
-  if (photo instanceof File && photo.size > 0) {
-    photoUrl = await saveCandidatePhoto(photo, slug);
-  }
-
-  const candidate = await prisma.candidate.create({
-    data: {
-      seasonId: season.id,
-      stageName,
-      slug,
-      city: city || null,
-      bio: bio || null,
-      photoUrl,
-    },
-  });
-
-  const activePhase = season.phases.find((p) => p.status === "active");
-  if (activePhase) {
-    await prisma.phaseEntry.create({
-      data: {
-        phaseId: activePhase.id,
-        candidateId: candidate.id,
-        status: "active",
-      },
-    });
-  }
-
-  revalidateCandidateViews();
 }
 
 async function deleteCandidate(formData: FormData) {
@@ -81,6 +35,24 @@ async function deleteCandidate(formData: FormData) {
   revalidateCandidateViews();
 }
 
+async function toggleRegistrations(formData: FormData) {
+  "use server";
+  const admin = await getAdminSession();
+  if (!admin) redirect("/admin/login");
+
+  const seasonId = String(formData.get("seasonId") ?? "");
+  const open = String(formData.get("open") ?? "") === "1";
+  if (!seasonId) return;
+
+  await prisma.season.update({
+    where: { id: seasonId },
+    data: { registrationsOpen: open },
+  });
+
+  revalidatePath("/admin/candidats");
+  revalidatePath("/inscription");
+}
+
 export default async function AdminCandidatesPage() {
   const admin = await getAdminSession();
   if (!admin) redirect("/admin/login");
@@ -96,40 +68,39 @@ export default async function AdminCandidatesPage() {
   return (
     <main>
       <h1 className="page-title">Candidats</h1>
-      <p className="muted">Créés uniquement par l&apos;administration.</p>
+      <p className="muted">
+        Les artistes créent leur compte et gèrent leur profil. Ton rôle : ouvrir
+        ou terminer les inscriptions, puis suivre la liste.
+      </p>
 
-      <form
-        action={createCandidate}
-        className="admin-card admin-form"
-        encType="multipart/form-data"
-      >
-        <h2 className="admin-form-title">Nouveau candidat</h2>
-        <label className="field">
-          <span>Nom de scène</span>
-          <input name="stageName" required placeholder="Ex: Benda Fire" />
-        </label>
-        <label className="field">
-          <span>Ville</span>
-          <input name="city" placeholder="Douala" />
-        </label>
-        <label className="field">
-          <span>Photo</span>
-          <input
-            className="file-input"
-            name="photo"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-          />
-          <span className="field-hint">JPG, PNG ou WebP · max 4 Mo</span>
-        </label>
-        <label className="field">
-          <span>Bio</span>
-          <textarea name="bio" rows={3} placeholder="Style, force, vibe..." />
-        </label>
-        <button className="btn-primary" type="submit">
-          Ajouter le candidat
-        </button>
-      </form>
+      {season ? (
+        <div className="admin-card registration-toggle">
+          <div>
+            <h2 className="admin-form-title">Inscriptions artistes</h2>
+            <p className="muted">
+              {season.registrationsOpen
+                ? "Ouvertes · les candidats s'inscrivent sur /inscription."
+                : "Fermées · plus de nouveaux comptes artistes."}
+            </p>
+            <p className="muted" style={{ marginTop: "0.35rem" }}>
+              Espace candidat : <Link href="/candidat/login">/candidat</Link>
+            </p>
+          </div>
+          <form action={toggleRegistrations}>
+            <input type="hidden" name="seasonId" value={season.id} />
+            <input
+              type="hidden"
+              name="open"
+              value={season.registrationsOpen ? "0" : "1"}
+            />
+            <button className="btn-primary" type="submit">
+              {season.registrationsOpen
+                ? "Terminer les inscriptions"
+                : "Rouvrir les inscriptions"}
+            </button>
+          </form>
+        </div>
+      ) : null}
 
       <div className="admin-card">
         <div className="table-wrap">
@@ -138,6 +109,7 @@ export default async function AdminCandidatesPage() {
               <tr>
                 <th>Photo</th>
                 <th>Artiste</th>
+                <th>Compte</th>
                 <th>Ville</th>
                 <th>Votes</th>
                 <th>Gains (50%)</th>
@@ -167,6 +139,19 @@ export default async function AdminCandidatesPage() {
                   <td>
                     <strong>{c.stageName}</strong>
                     <div className="muted">{c.slug}</div>
+                    {c.phone ? <div className="muted">{c.phone}</div> : null}
+                  </td>
+                  <td>
+                    {c.email ? (
+                      <>
+                        <div>{c.email}</div>
+                        <div className="muted">
+                          {c.passwordHash ? "compte actif" : "sans mot de passe"}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="muted">pas de compte</span>
+                    )}
                   </td>
                   <td>{c.city ?? "—"}</td>
                   <td>{formatVotes(c.totalVotes)}</td>

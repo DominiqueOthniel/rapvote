@@ -885,7 +885,8 @@ select:focus-visible {
 }
 
 .jury-input {
-  width: 4.2rem;
+  width: 100%;
+  max-width: 6rem;
   min-height: 2.2rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--line);
@@ -897,6 +898,118 @@ select:focus-visible {
 .jury-save {
   min-height: 2.2rem;
   padding: 0.25rem 0.55rem;
+}
+
+.jury-entry-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.jury-entry-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.jury-entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.jury-entry-meta {
+  display: grid;
+  gap: 0.15rem;
+  text-align: right;
+}
+
+.jury-score-list {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.jury-question {
+  margin: 0.65rem 0 0;
+  font-style: italic;
+  color: #e8e0d4;
+}
+
+.jury-criteria-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.jury-criterion strong {
+  color: var(--lime);
+  font-weight: 600;
+}
+
+.jury-rubric-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.jury-total {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.rubric-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  font-size: 0.9rem;
+  color: #d8d0c4;
+}
+
+.registration-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.inscription-form {
+  max-width: 36rem;
+}
+
+.candidate-dash-grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .candidate-dash-grid {
+    grid-template-columns: minmax(16rem, 0.9fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+.candidate-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.candidate-stats li {
+  display: grid;
+  gap: 0.15rem;
 }
 
 .admin-page-head {

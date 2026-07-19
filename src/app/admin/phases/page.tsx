@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getActiveSeason } from "@/lib/competition";
-import { EXPECTED_JURY_COUNT, asJuryScoreOutOf10 } from "@/lib/jury";
+import { EXPECTED_JURY_COUNT, asJuryScoreOutOf100, getRubricForPhase } from "@/lib/jury";
 import { getEpisodeByNumber, getEpisodeLabel } from "@/lib/parcours";
 import {
   formatJuryNote,
@@ -137,6 +137,7 @@ export default async function AdminPhasesPage() {
     .sort((a, b) => b.votesCount - a.votesCount);
   const entries = [...activeEntries, ...eliminatedEntries];
   const maxVotes = getMaxVotes(rawEntries);
+  const rubric = getRubricForPhase(active?.number ?? 0);
 
   return (
     <main>
@@ -178,17 +179,29 @@ export default async function AdminPhasesPage() {
       {active ? (
         <>
           <div className="admin-card score-rules">
-            <h2 className="admin-form-title">Barème phase {active.number}</h2>
+            <h2 className="admin-form-title">
+              {rubric.title} · phase {active.number}
+            </h2>
+            {rubric.question ? (
+              <p className="jury-question">« {rubric.question} »</p>
+            ) : null}
             <p className="muted score-rules-text">
-              Les votes représentent <strong>{Math.round(VOTE_WEIGHT * 100)}%</strong>{" "}
-              du score. Le jury représente{" "}
-              <strong>{Math.round(JURY_WEIGHT * 100)}%</strong> via la moyenne des{" "}
-              {EXPECTED_JURY_COUNT} notes (0 à 10). Les jurys notent sur{" "}
+              Carnet officiel des jurés · note sur 100 (somme des critères). Les
+              votes valent <strong>{Math.round(VOTE_WEIGHT * 100)}%</strong>, la
+              moyenne des {EXPECTED_JURY_COUNT} jurys vaut{" "}
+              <strong>{Math.round(JURY_WEIGHT * 100)}%</strong>. Espace{" "}
               <a href="/jury/login">/jury</a>.
             </p>
+            <ul className="rubric-preview">
+              {rubric.criteria.map((c) => (
+                <li key={c.key}>
+                  {c.label} <strong>/{c.max}</strong>
+                </li>
+              ))}
+            </ul>
             <div className="score-rules-formula">
               Score final = (part votes × {Math.round(VOTE_WEIGHT * 100)}%) + (moyenne
-              jury × {Math.round(JURY_WEIGHT * 100)}%)
+              jury /100 × {Math.round(JURY_WEIGHT * 100)}%)
             </div>
             <p className="muted" style={{ marginTop: "0.75rem" }}>
               Profils jury :{" "}
@@ -239,7 +252,9 @@ export default async function AdminPhasesPage() {
                           const note = entry.juryScores.find((s) => s.juryId === jury.id);
                           return (
                             <td key={jury.id}>
-                              {note ? `${asJuryScoreOutOf10(note.score)}/10` : "—"}
+                              {note
+                                ? `${asJuryScoreOutOf100(note.score)}/100`
+                                : "—"}
                             </td>
                           );
                         })}

@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE "Season" ADD COLUMN IF NOT EXISTS "registrationsOpen" BOOLEAN NOT NULL DEFAULT true;
+
+-- AlterTable
+ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'admin';
+
+-- AlterTable
+ALTER TABLE "JuryScore" ADD COLUMN IF NOT EXISTS "breakdown" JSONB;

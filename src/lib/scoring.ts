@@ -1,4 +1,4 @@
-import { asJuryScoreOutOf10 } from "@/lib/jury";
+import { asJuryScoreOutOf100 } from "@/lib/jury";
 
 export const VOTE_WEIGHT = 0.15;
 export const JURY_WEIGHT = 0.85;
@@ -17,10 +17,10 @@ export function votePoints(votesCount: number, maxVotes: number): number {
   return voteSharePercent(votesCount, maxVotes) * VOTE_WEIGHT;
 }
 
-/** Note jury /10 → contribution au score final (max 85 pts). */
-export function juryPoints(juryScoreOutOf10: number): number {
-  const score = asJuryScoreOutOf10(juryScoreOutOf10);
-  return (score / 10) * 100 * JURY_WEIGHT;
+/** Note jury /100 → contribution au score final (max 85 pts). */
+export function juryPoints(juryScoreStored: number): number {
+  const score = asJuryScoreOutOf100(juryScoreStored);
+  return (score / 100) * 100 * JURY_WEIGHT;
 }
 
 export function phaseFinalScore(entry: ScoredEntry, maxVotes: number): number {
@@ -38,7 +38,7 @@ export function sortByFinalScore<T extends ScoredEntry>(entries: T[]): T[] {
     const diff = phaseFinalScore(b, maxVotes) - phaseFinalScore(a, maxVotes);
     if (diff !== 0) return diff;
     const juryDiff =
-      asJuryScoreOutOf10(b.juryScore) - asJuryScoreOutOf10(a.juryScore);
+      asJuryScoreOutOf100(b.juryScore) - asJuryScoreOutOf100(a.juryScore);
     if (juryDiff !== 0) return juryDiff;
     return b.votesCount - a.votesCount;
   });
@@ -49,5 +49,5 @@ export function formatScore(value: number): string {
 }
 
 export function formatJuryNote(value: number): string {
-  return `${formatScore(asJuryScoreOutOf10(value))}/10`;
+  return `${formatScore(asJuryScoreOutOf100(value))}/100`;
 }

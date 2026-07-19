@@ -1,32 +1,32 @@
 import Link from "next/link";
+import { destroyCandidateSession, getCandidateSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { destroyJurySession, getJurySession } from "@/lib/auth";
 
 async function logout() {
   "use server";
-  await destroyJurySession();
-  redirect("/jury/login");
+  await destroyCandidateSession();
+  redirect("/candidat/login");
 }
 
-export default async function JuryLayout({
+export default async function CandidateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const jury = await getJurySession();
+  const candidate = await getCandidateSession();
 
   return (
     <div className="admin-shell">
       <div className="brand admin-brand">
         <span className="brand-mark">FC</span>
-        <span className="brand-name">N£₩ St@r ₽uN€h · Jury</span>
+        <span className="brand-name">Espace artiste</span>
       </div>
       <nav className="admin-nav">
-        {jury ? (
+        {candidate ? (
           <>
-            <span className="muted">{jury.name}</span>
-            <Link className="btn-ghost" href="/jury">
-              Notation
+            <span className="muted">{candidate.stageName}</span>
+            <Link className="btn-ghost" href="/candidat">
+              Mon profil
             </Link>
             <form action={logout}>
               <button className="btn-secondary" type="submit">

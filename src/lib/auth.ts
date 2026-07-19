@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 
 export const ADMIN_COOKIE = "fortheculture_admin";
 export const JURY_COOKIE = "fortheculture_jury";
+export const CANDIDATE_COOKIE = "fortheculture_candidat";
 
 const cookieOptions = {
   httpOnly: true,
@@ -114,4 +115,45 @@ export async function requireJury() {
   const jury = await getJurySession();
   if (!jury) throw new Error("UNAUTHORIZED");
   return jury;
+}
+
+export async function createCandidateToken(candidateId: string) {
+  return new SignJWT({ sub: candidateId, role: "candidate" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(getSecret());
+}
+
+export async function createCandidateSession(candidateId: string) {
+  const token = await createCandidateToken(candidateId);
+  const jar = await cookies();
+  jar.set(CANDIDATE_COOKIE, token, cookieOptions);
+}
+
+export async function destroyCandidateSession() {
+  const jar = await cookies();
+  jar.delete(CANDIDATE_COOKIE);
+}
+
+export async function getCandidateSession() {
+  const jar = await cookies();
+  const token = jar.get(CANDIDATE_COOKIE)?.value;
+  if (!token) return null;
+
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.role !== "candidate") return null;
+    const candidateId = payload.sub;
+    if (!candidateId) return null;
+    return prisma.candidate.findUnique({ where: { id: candidateId } });
+  } catch {
+    return null;
+  }
+}
+
+export async function requireCandidate() {
+  const candidate = await getCandidateSession();
+  if (!candidate) throw new Error("UNAUTHORIZED");
+  return candidate;
 }

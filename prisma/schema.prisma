@@ -17,15 +17,16 @@ model Admin {
 }
 
 model Season {
-  id          String      @id @default(cuid())
-  title       String
-  tagline     String?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  phases      Phase[]
-  candidates  Candidate[]
-  packages    VotePackage[]
+  id                 String        @id @default(cuid())
+  title              String
+  tagline            String?
+  isActive           Boolean       @default(true)
+  registrationsOpen  Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  phases             Phase[]
+  candidates         Candidate[]
+  packages           VotePackage[]
 }
 
 model Phase {
@@ -52,12 +53,17 @@ model Candidate {
   seasonId        String
   stageName       String
   slug            String       @unique
+  email           String?      @unique
+  passwordHash    String?
   city            String?
   bio             String?
   photoUrl        String?
   audioUrl        String?
+  phone           String?
   phoneOrange     String?
   phoneMtn        String?
+  status          String       @default("active")
+  source          String       @default("admin")
   totalVotes      Int          @default(0)
   totalEarnedXaf  Int          @default(0)
   createdAt       DateTime     @default(now())
@@ -99,6 +105,7 @@ model JuryScore {
   juryId       String
   phaseEntryId String
   score        Int        @default(0)
+  breakdown    Json?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   jury         Jury       @relation(fields: [juryId], references: [id], onDelete: Cascade)

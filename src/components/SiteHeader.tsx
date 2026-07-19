@@ -5,13 +5,20 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Accueil" },
+  { href: "/inscription", label: "Inscription artiste" },
   { href: "/classement", label: "Classement" },
   { href: "/phases", label: "Phases" },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname.startsWith("/admin") || pathname.startsWith("/jury")) return null;
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/jury") ||
+    pathname.startsWith("/candidat")
+  ) {
+    return null;
+  }
 
   return (
     <header className="site-header">

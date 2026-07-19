@@ -1,24 +1,26 @@
 import { prisma } from "@/lib/db";
+import {
+  clampCriterion,
+  computeRubricTotal,
+  getRubricForPhase,
+  parseBreakdown,
+  type RubricDef,
+} from "@/lib/judging";
 
 export const EXPECTED_JURY_COUNT = 3;
-export const JURY_SCORE_MAX = 10;
+export const JURY_SCORE_MAX = 100;
 
-export function clampJuryScore(value: number): number {
-  return Math.min(JURY_SCORE_MAX, Math.max(0, Math.round(value)));
+/** Normalise une note stockée vers /100 (compat anciennes notes /10). */
+export function asJuryScoreOutOf100(stored: number): number {
+  if (stored <= 10) return Math.round(stored * 10);
+  return Math.min(JURY_SCORE_MAX, Math.max(0, stored));
 }
 
 export function averageJuryScore(scores: number[]): number {
   if (scores.length === 0) return 0;
-  const sum = scores.reduce((total, score) => total + score, 0);
-  return Math.round((sum / scores.length) * 10) / 10;
-}
-
-/** Compat: anciennes notes /100 → /10. */
-export function asJuryScoreOutOf10(stored: number): number {
-  if (stored > JURY_SCORE_MAX) {
-    return clampJuryScore(stored / 10);
-  }
-  return stored;
+  const normalized = scores.map(asJuryScoreOutOf100);
+  const sum = normalized.reduce((total, score) => total + score, 0);
+  return Math.round((sum / normalized.length) * 10) / 10;
 }
 
 export async function syncPhaseEntryJuryAverage(phaseEntryId: string) {
@@ -27,9 +29,7 @@ export async function syncPhaseEntryJuryAverage(phaseEntryId: string) {
     select: { score: true },
   });
 
-  const average = averageJuryScore(
-    scores.map((item) => asJuryScoreOutOf10(item.score)),
-  );
+  const average = averageJuryScore(scores.map((item) => item.score));
   const juryScore = Math.round(average);
 
   await prisma.phaseEntry.update({
@@ -40,12 +40,27 @@ export async function syncPhaseEntryJuryAverage(phaseEntryId: string) {
   return average;
 }
 
-export async function upsertJuryScore(params: {
+export function buildBreakdownFromForm(
+  rubric: RubricDef,
+  formData: FormData,
+): Record<string, number> {
+  const breakdown: Record<string, number> = {};
+  for (const criterion of rubric.criteria) {
+    const raw = Number(formData.get(`c_${criterion.key}`));
+    breakdown[criterion.key] = clampCriterion(raw, criterion.max);
+  }
+  return breakdown;
+}
+
+export async function upsertJuryRubricScore(params: {
   juryId: string;
   phaseEntryId: string;
-  score: number;
+  phaseNumber: number;
+  formData: FormData;
 }) {
-  const score = clampJuryScore(params.score);
+  const rubric = getRubricForPhase(params.phaseNumber);
+  const breakdown = buildBreakdownFromForm(rubric, params.formData);
+  const score = computeRubricTotal(rubric, breakdown);
 
   await prisma.juryScore.upsert({
     where: {
@@ -58,9 +73,12 @@ export async function upsertJuryScore(params: {
       juryId: params.juryId,
       phaseEntryId: params.phaseEntryId,
       score,
+      breakdown,
     },
-    update: { score },
+    update: { score, breakdown },
   });
 
   return syncPhaseEntryJuryAverage(params.phaseEntryId);
 }
+
+export { parseBreakdown, getRubricForPhase };
