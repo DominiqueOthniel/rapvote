@@ -4,8 +4,24 @@ Compétition rap (New Star Punch) avec parcours d'épisodes, notation jury (3 pr
 
 ## Démarrage
 
+1. Crée un projet gratuit sur [supabase.com](https://supabase.com)
+2. Copie les URLs Postgres (Settings → Database) dans `.env` :
+
+```env
+# Pooler (Transaction) port 6543, pour l'app / Netlify
+DATABASE_URL="postgresql://postgres.XXXX:MOTDEPASSE@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Direct port 5432, pour prisma migrate / db push
+DIRECT_URL="postgresql://postgres.XXXX:MOTDEPASSE@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+
+AUTH_SECRET="change-moi-par-une-longue-chaine-aleatoire"
+```
+
+3. Installe et initialise :
+
 ```bash
 npm install
+npx prisma migrate deploy
 npm run db:seed
 npm run dev
 ```
@@ -33,11 +49,28 @@ Ouvre [http://localhost:3000](http://localhost:3000)
 - Mot de passe: `jury123`
 - Notes sur 10, moyenne auto, 85% du score final (votes 15%)
 
+## Déploiement Netlify
+
+Dans **Site settings → Environment variables** :
+
+| Variable | Valeur |
+|---|---|
+| `DATABASE_URL` | URL pooler Supabase (`:6543` + `?pgbouncer=true`) |
+| `DIRECT_URL` | URL directe Supabase (`:5432`) |
+| `AUTH_SECRET` | chaîne aléatoire longue |
+
+Puis :
+
+```bash
+npx prisma migrate deploy
+npm run db:seed
+```
+
+Redeploy le site.
+
 ## Paiements Campay
 
 Sans clés Campay, les votes passent en mode démo (confirmation automatique).
-
-Dans `.env` :
 
 ```
 CAMPAY_USERNAME=...
@@ -47,26 +80,4 @@ CAMPAY_BASE_URL=https://www.campay.net/api
 
 ## Stack
 
-Next.js, Prisma, SQLite (local) / Turso libSQL (Netlify), Campay (Orange Money + MTN Money Cameroun)
-
-## Déploiement Netlify
-
-SQLite fichier local ne fonctionne pas sur Netlify (serverless). Utilise Turso :
-
-1. Crée une base sur [turso.tech](https://turso.tech)
-2. Dans Netlify → Site settings → Environment variables :
-   - `TURSO_DATABASE_URL` = `libsql://...`
-   - `TURSO_AUTH_TOKEN` = ton token
-   - `AUTH_SECRET` = une longue chaîne aléatoire
-   - `DATABASE_URL` = la même URL Turso (pour Prisma CLI)
-3. Applique le schéma puis seed depuis ta machine :
-
-```bash
-set TURSO_DATABASE_URL=libsql://...
-set TURSO_AUTH_TOKEN=...
-set DATABASE_URL=%TURSO_DATABASE_URL%
-npx prisma db push
-npm run db:seed
-```
-
-4. Redeploy le site Netlify
+Next.js, Prisma, Supabase Postgres, Campay (Orange Money + MTN Money Cameroun)

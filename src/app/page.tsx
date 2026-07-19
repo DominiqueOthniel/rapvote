@@ -20,8 +20,8 @@ function SetupMessage({ message }: { message: string }) {
         <h1>Configuration requise</h1>
         <p>{message}</p>
         <p className="muted" style={{ marginTop: "1rem" }}>
-          Sur Netlify, ajoute TURSO_DATABASE_URL, TURSO_AUTH_TOKEN et AUTH_SECRET,
-          puis relance un déploiement.
+          Sur Netlify, ajoute DATABASE_URL (Supabase pooler), DIRECT_URL et
+          AUTH_SECRET, puis relance un déploiement.
         </p>
       </div>
     </main>
