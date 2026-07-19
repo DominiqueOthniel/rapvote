@@ -18,7 +18,7 @@ export function SiteHeader() {
       <div className="shell site-header-inner">
         <Link href="/" className="brand">
           <span className="brand-mark">FC</span>
-          <span className="brand-name">ForTheCulture</span>
+          <span className="brand-name">For The Culture</span>
         </Link>
         <nav className="nav" aria-label="Navigation principale">
           {links.map((link) => (

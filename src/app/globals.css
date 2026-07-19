@@ -12,7 +12,15 @@
   --mtn: #ffcc00;
   --danger: #ff6b5a;
   --shell: 1120px;
-  --gutter: 1rem;
+  --gutter: 1.25rem;
+  --header-h: 4.25rem;
+  --focus: #d6ff3f;
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --radius-control: 2px;
 }
 
 * {
@@ -69,49 +77,57 @@ video {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 0;
-  min-height: 4.25rem;
+  padding: 0.85rem 0;
+  min-height: var(--header-h);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   min-width: 0;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
   flex-shrink: 0;
   background: var(--lime);
   color: #111;
   font-family: var(--font-display), sans-serif;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.04em;
 }
 
 .brand-name {
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(1.45rem, 4vw, 2.2rem);
-  letter-spacing: 0.04em;
+  font-size: clamp(1.15rem, 2.8vw, 1.85rem);
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.65rem 1rem;
+  gap: 0.35rem 0.85rem;
 }
 
 .nav-link {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.45rem 0.15rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
   transition: color 0.2s ease;
   white-space: nowrap;
 }
@@ -121,8 +137,21 @@ video {
   color: var(--ink);
 }
 
+.nav-link:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-ghost:focus-visible,
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .hero {
-  min-height: calc(100svh - 4.25rem);
+  min-height: calc(100svh - var(--header-h));
   display: grid;
   align-content: center;
   gap: 1.25rem;
@@ -133,7 +162,7 @@ video {
 
 .hero-visual {
   width: 100%;
-  min-height: min(92svh, 780px);
+  min-height: min(88svh, 820px);
   padding: 0;
   align-content: end;
   overflow: hidden;
@@ -148,8 +177,8 @@ video {
 
 .hero-stage-img {
   object-fit: cover;
-  object-position: center 30%;
-  transform: scale(1.05);
+  object-position: center 28%;
+  transform: scale(1.04);
   animation: kenburns 18s ease-in-out infinite alternate;
 }
 
@@ -157,8 +186,8 @@ video {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(9, 8, 7, 0.35) 0%, rgba(9, 8, 7, 0.55) 40%, rgba(9, 8, 7, 0.92) 100%),
-    linear-gradient(90deg, rgba(9, 8, 7, 0.75) 0%, transparent 55%);
+    linear-gradient(180deg, rgba(9, 8, 7, 0.55) 0%, rgba(9, 8, 7, 0.45) 35%, rgba(9, 8, 7, 0.94) 100%),
+    linear-gradient(90deg, rgba(9, 8, 7, 0.88) 0%, rgba(9, 8, 7, 0.45) 48%, rgba(9, 8, 7, 0.2) 100%);
 }
 
 .hero-copy {
@@ -166,45 +195,60 @@ video {
   z-index: 1;
   width: min(var(--shell), calc(100% - (var(--gutter) * 2)));
   margin-inline: auto;
-  padding: clamp(2.5rem, 8vw, 4rem) 0 clamp(2.5rem, 6vw, 3.5rem);
+  padding: clamp(3rem, 10vw, 5rem) 0 clamp(2.75rem, 7vw, 4rem);
   display: grid;
-  gap: 1.1rem;
+  gap: 1rem;
+  max-width: 40rem;
   animation: rise 0.9s ease both;
 }
 
 .hero-kicker {
   color: var(--lime);
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  font-size: clamp(0.68rem, 1.8vw, 0.78rem);
   font-weight: 700;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
 }
 
-.hero h1 {
+.hero h1,
+.hero-title {
   margin: 0;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(2.8rem, 14vw, 7rem);
+  font-size: clamp(2.6rem, 9vw, 5.75rem);
   line-height: 0.92;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  max-width: 10ch;
-  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
-  overflow-wrap: anywhere;
+  letter-spacing: 0.015em;
+  max-width: none;
+  text-shadow: 0 10px 42px rgba(0, 0, 0, 0.55);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.hero-title {
+  display: grid;
+  gap: 0.05em;
+}
+
+.hero-title span {
+  display: block;
 }
 
 .hero p {
   margin: 0;
-  max-width: 36rem;
-  color: #d8d0c4;
-  font-size: clamp(1rem, 2.5vw, 1.1rem);
-  line-height: 1.5;
+  max-width: 32rem;
+  color: #ebe4d8;
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  line-height: 1.55;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
 }
 
 .btn-primary,
@@ -214,13 +258,15 @@ video {
   align-items: center;
   justify-content: center;
   min-height: 3rem;
+  min-width: 2.75rem;
   padding: 0.75rem 1.25rem;
   border: 0;
   cursor: pointer;
   font-family: var(--font-body), sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  border-radius: var(--radius-control);
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-primary {
@@ -241,21 +287,33 @@ video {
 .btn-secondary {
   background: transparent;
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(244, 239, 230, 0.35);
+}
+
+.btn-on-media {
+  border-color: rgba(244, 239, 230, 0.7);
+  background: rgba(9, 8, 7, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.btn-on-media:hover {
+  border-color: #fff;
+  background: rgba(9, 8, 7, 0.55);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--lime);
   border: 1px solid rgba(214, 255, 63, 0.35);
-  min-height: 2.4rem;
+  min-height: 2.6rem;
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
 }
 
 .section {
-  padding: clamp(2rem, 5vw, 3rem) 0 clamp(2.5rem, 6vw, 4rem);
+  padding: clamp(2.25rem, 5vw, 3.25rem) 0 clamp(2.75rem, 6vw, 4.25rem);
   animation: rise 0.7s ease both;
+  scroll-margin-top: 5rem;
 }
 
 .section-head {
@@ -264,17 +322,19 @@ video {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.35rem;
 }
 
 .section h2,
 .page-title {
   margin: 0;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-size: clamp(1.85rem, 5vw, 3.1rem);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  line-height: 1;
+  line-height: 1.05;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .muted {
@@ -1213,31 +1273,56 @@ video {
 }
 
 @media (max-width: 699px) {
+  :root {
+    --gutter: 1rem;
+    --header-h: auto;
+  }
+
   .site-header-inner {
     flex-direction: column;
     align-items: flex-start;
-    padding: 0.85rem 0;
-    gap: 0.65rem;
+    padding: 0.75rem 0 0.85rem;
+    gap: 0.35rem;
   }
 
   .nav {
     width: 100%;
     justify-content: flex-start;
-    gap: 0.55rem 0.9rem;
+    gap: 0.25rem 0.85rem;
   }
 
   .nav-link {
     font-size: 0.88rem;
+    min-height: 2.5rem;
   }
 
   .hero-visual {
-    min-height: min(85svh, 680px);
+    min-height: min(86svh, 720px);
+  }
+
+  .hero-copy {
+    max-width: none;
+    gap: 0.9rem;
+  }
+
+  .hero-title {
+    font-size: clamp(2.45rem, 12vw, 3.6rem);
   }
 
   .hero-stage-mask {
     background:
-      linear-gradient(180deg, rgba(9, 8, 7, 0.4) 0%, rgba(9, 8, 7, 0.6) 35%, rgba(9, 8, 7, 0.94) 100%),
-      linear-gradient(90deg, rgba(9, 8, 7, 0.55) 0%, transparent 70%);
+      linear-gradient(180deg, rgba(9, 8, 7, 0.58) 0%, rgba(9, 8, 7, 0.52) 32%, rgba(9, 8, 7, 0.95) 100%),
+      linear-gradient(90deg, rgba(9, 8, 7, 0.72) 0%, rgba(9, 8, 7, 0.35) 70%);
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary {
+    flex: 1 1 auto;
+    min-width: min(100%, 10rem);
   }
 
   .rank-row {
@@ -1287,11 +1372,11 @@ video {
 
 @media (max-width: 380px) {
   .brand-name {
-    font-size: 1.35rem;
+    font-size: 1.05rem;
   }
 
-  .hero h1 {
-    font-size: clamp(2.4rem, 16vw, 3.2rem);
+  .hero-title {
+    font-size: clamp(2.2rem, 13vw, 2.8rem);
   }
 }
 

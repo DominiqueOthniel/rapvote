@@ -91,7 +91,10 @@ export default async function HomePage() {
         </div>
         <div className="hero-copy">
           <p className="hero-kicker">Rap · Cameroun · New Star Punch</p>
-          <h1>ForTheCulture</h1>
+          <h1 className="hero-title">
+            <span>For The</span>
+            <span>Culture</span>
+          </h1>
           <p>
             {season.tagline ??
               "Du freestyle à l'œuvre ultime. Jury, public, et un seul champion."}
@@ -100,7 +103,7 @@ export default async function HomePage() {
             <Link className="btn-primary" href="#artistes">
               Voir les artistes
             </Link>
-            <Link className="btn-secondary" href="/phases">
+            <Link className="btn-secondary btn-on-media" href="/phases">
               Le parcours
             </Link>
           </div>
