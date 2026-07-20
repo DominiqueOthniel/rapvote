@@ -15,10 +15,10 @@ import {
   deleteCandidatePhotoFile,
   deletePhaseAudioFile,
   saveCandidatePhoto,
-  savePhaseAudio,
 } from "@/lib/upload";
 import { COMPETITION_BRAND } from "@/lib/parcours";
 import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
+import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
 
 export const dynamic = "force-dynamic";
 
@@ -96,68 +96,6 @@ async function updateProfile(formData: FormData) {
   if (existing.slug !== slug) {
     revalidatePath(`/candidats/${existing.slug}`);
   }
-}
-
-async function upsertPhaseTrack(formData: FormData) {
-  "use server";
-  const session = await getCandidateSession();
-  if (!session) redirect("/candidat/login");
-
-  const phaseId = String(formData.get("phaseId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  const audio = formData.get("audio");
-
-  if (!phaseId || !(audio instanceof File) || audio.size === 0) return;
-
-  const candidate = await prisma.candidate.findUnique({
-    where: { id: session.id },
-  });
-  if (!candidate) return;
-
-  const phase = await prisma.phase.findFirst({
-    where: { id: phaseId, seasonId: candidate.seasonId },
-  });
-  if (!phase) return;
-
-  let audioUrl: string;
-  try {
-    const uploaded = await savePhaseAudio(audio, candidate.slug, phase.number);
-    if (!uploaded) return;
-    audioUrl = uploaded;
-  } catch {
-    return;
-  }
-
-  const existing = await prisma.phaseTrack.findUnique({
-    where: {
-      candidateId_phaseId: {
-        candidateId: candidate.id,
-        phaseId: phase.id,
-      },
-    },
-  });
-
-  if (existing) {
-    await deletePhaseAudioFile(existing.audioUrl);
-    await prisma.phaseTrack.update({
-      where: { id: existing.id },
-      data: {
-        audioUrl,
-        title: title || existing.title,
-      },
-    });
-  } else {
-    await prisma.phaseTrack.create({
-      data: {
-        candidateId: candidate.id,
-        phaseId: phase.id,
-        audioUrl,
-        title: title || null,
-      },
-    });
-  }
-
-  revalidateCandidateViews(candidate.slug);
 }
 
 async function deletePhaseTrack(formData: FormData) {
@@ -387,37 +325,11 @@ export default async function CandidateDashboardPage() {
                     ) : null}
                   </div>
 
-                  <form
-                    action={upsertPhaseTrack}
-                    encType="multipart/form-data"
-                    className="phase-track-upload"
-                  >
-                    <input type="hidden" name="phaseId" value={p.id} />
-                    <label className="field">
-                      <span>Titre (optionnel)</span>
-                      <input
-                        name="title"
-                        defaultValue={track?.title ?? ""}
-                        placeholder="Ex: Freestyle final"
-                      />
-                    </label>
-                    <label className="field">
-                      <span>Fichier audio</span>
-                      <input
-                        className="file-input"
-                        name="audio"
-                        type="file"
-                        accept="audio/mpeg,audio/mp4,audio/wav,audio/webm,audio/ogg,.mp3,.m4a,.wav"
-                        required
-                      />
-                      <span className="field-hint">
-                        MP3, M4A, WAV · max 15 Mo
-                      </span>
-                    </label>
-                    <button className="btn-primary" type="submit">
-                      {track ? "Remplacer le son" : "Uploader le son"}
-                    </button>
-                  </form>
+                  <PhaseTrackUploadForm
+                    phaseId={p.id}
+                    hasTrack={Boolean(track)}
+                    defaultTitle={track?.title}
+                  />
 
                   {track ? (
                     <form action={deletePhaseTrack}>

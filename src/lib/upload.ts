@@ -42,21 +42,75 @@ export function isSupabaseStorageConfigured() {
 async function ensureBucket(client: SupabaseClient) {
   const { data: buckets } = await client.storage.listBuckets();
   const exists = buckets?.some((b) => b.name === BUCKET);
-  if (exists) return;
+  const mimeTypes = [
+    ...Object.keys(ALLOWED_PHOTO_TYPES),
+    ...Object.keys(ALLOWED_AUDIO_TYPES),
+  ];
 
-  const { error } = await client.storage.createBucket(BUCKET, {
+  if (!exists) {
+    const { error } = await client.storage.createBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: MAX_AUDIO_BYTES,
+      allowedMimeTypes: mimeTypes,
+    });
+
+    if (error && !/already exists|duplicate/i.test(error.message)) {
+      throw new Error(`Bucket Supabase: ${error.message}`);
+    }
+    return;
+  }
+
+  // Met à jour les MIME (photos + audio) si le bucket existait déjà.
+  await client.storage.updateBucket(BUCKET, {
     public: true,
     fileSizeLimit: MAX_AUDIO_BYTES,
-    allowedMimeTypes: [
-      ...Object.keys(ALLOWED_PHOTO_TYPES),
-      ...Object.keys(ALLOWED_AUDIO_TYPES),
-    ],
+    allowedMimeTypes: mimeTypes,
   });
-
-  if (error && !/already exists|duplicate/i.test(error.message)) {
-    throw new Error(`Bucket Supabase: ${error.message}`);
-  }
 }
+
+export async function createPhaseAudioUploadTarget(
+  slug: string,
+  phaseNumber: number,
+  contentType: string,
+) {
+  const ext = ALLOWED_AUDIO_TYPES[contentType];
+  if (!ext) {
+    throw new Error("Format audio invalide (MP3, M4A, WAV, WebM ou OGG)");
+  }
+
+  const client = getSupabaseAdmin();
+  if (!client) {
+    throw new Error(
+      "Upload indisponible : configure SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY",
+    );
+  }
+
+  await ensureBucket(client);
+
+  const objectPath = `audio/${slug}/phase-${phaseNumber}-${Date.now()}.${ext}`;
+  const { data, error } = await client.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(objectPath);
+
+  if (error || !data) {
+    throw new Error(`URL upload: ${error?.message ?? "échec"}`);
+  }
+
+  const { data: pub } = client.storage.from(BUCKET).getPublicUrl(objectPath);
+
+  return {
+    path: objectPath,
+    token: data.token,
+    signedUrl: data.signedUrl,
+    publicUrl: pub.publicUrl,
+  };
+}
+
+export function isAllowedAudioType(contentType: string) {
+  return Boolean(ALLOWED_AUDIO_TYPES[contentType]);
+}
+
+export const PHASE_AUDIO_MAX_BYTES = MAX_AUDIO_BYTES;
 
 function validatePhoto(file: File) {
   if (!file || file.size === 0) return null;

@@ -47,9 +47,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Connexion fan impossible" },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Connexion fan impossible";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
