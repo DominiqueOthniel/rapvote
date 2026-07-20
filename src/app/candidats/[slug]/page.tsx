@@ -73,7 +73,7 @@ export default async function CandidatePage({ params }: Props) {
         </div>
       </section>
 
-      {phase && entry?.status === "active" ? (
+      {phase && entry?.status === "active" && phase.votesOpen ? (
         <VoteForm
           candidateId={candidate.id}
           candidateName={candidate.stageName}
@@ -84,7 +84,9 @@ export default async function CandidatePage({ params }: Props) {
         <section className="vote-form">
           <h2>Votes fermés</h2>
           <p className="muted">
-            Ce candidat n&apos;est pas votable sur la phase en cours.
+            {!phase || entry?.status !== "active"
+              ? "Ce candidat n'est pas votable sur la phase en cours."
+              : "Les votes sont temporairement bloqués par l'administration."}
           </p>
         </section>
       )}

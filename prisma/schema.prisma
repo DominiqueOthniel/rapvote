@@ -36,6 +36,7 @@ model Phase {
   title       String
   theme       String?
   status      String       @default("upcoming")
+  votesOpen   Boolean      @default(true)
   startsAt    DateTime?
   endsAt      DateTime?
   createdAt   DateTime     @default(now())

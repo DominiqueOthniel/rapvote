@@ -6,10 +6,10 @@ import {
 export type NotchChannel = "cm.mtn" | "cm.orange";
 
 export type NotchTransfer = {
-  id: string;
+  id?: string;
   reference: string;
-  amount: number;
-  currency: string;
+  amount?: number;
+  currency?: string;
   status: string;
   channel?: string;
   description?: string;
@@ -18,11 +18,16 @@ export type NotchTransfer = {
   failure_reason?: string;
 };
 
-type NotchTransferResponse = {
+type NotchJson = {
   code?: number;
   status?: string;
   message?: string;
-  transfer?: NotchTransfer;
+  transfer?: NotchTransfer | string;
+  beneficiary?: string | { id?: string };
+  recipient?: string | { id?: string };
+  transaction?: string | { id?: string; reference?: string; status?: string };
+  payment?: { id?: string; reference?: string; status?: string };
+  authorization_url?: string;
   errors?: Record<string, string[]>;
 };
 
@@ -36,6 +41,7 @@ function getKeys() {
   return { publicKey, privateKey };
 }
 
+/** Clés présentes = Notch Pay prêt (encaisser + verser). */
 export function isNotchPayConfigured() {
   const { publicKey, privateKey } = getKeys();
   return Boolean(publicKey && privateKey);
@@ -47,6 +53,11 @@ export function formatNotchPhone(phone: string) {
     throw new Error("Numéro Mobile Money invalide (ex: 6XXXXXXXX)");
   }
   return `+${digits}`;
+}
+
+/** Compte mobile money sans + pour certains endpoints Notch. */
+export function formatNotchAccount(phone: string) {
+  return normalizeCameroonPhone(phone);
 }
 
 export function channelFromOperator(operator: "ORANGE" | "MTN"): NotchChannel {
@@ -67,27 +78,37 @@ export function resolvePayoutChannel(
   return channelFromOperator(detected);
 }
 
-async function notchFetch(path: string, init?: RequestInit) {
+async function notchFetch(
+  path: string,
+  init?: RequestInit,
+  opts?: { grant?: boolean },
+) {
   const { publicKey, privateKey } = getKeys();
-  if (!publicKey || !privateKey) {
-    throw new Error("Notch Pay non configuré (NOTCHPAY_PUBLIC_KEY / NOTCHPAY_PRIVATE_KEY)");
+  if (!publicKey) {
+    throw new Error("NOTCHPAY_PUBLIC_KEY manquant");
+  }
+  if (opts?.grant !== false && !privateKey) {
+    throw new Error("NOTCHPAY_PRIVATE_KEY manquant");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: publicKey,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+
+  if (opts?.grant !== false && privateKey) {
+    headers["X-Grant"] = privateKey;
   }
 
   const res = await fetch(`${baseUrl()}${path}`, {
     ...init,
-    headers: {
-      Authorization: publicKey,
-      "X-Grant": privateKey,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
   });
 
-  const data = (await res.json().catch(() => ({}))) as NotchTransferResponse & {
-    message?: string;
-  };
+  const data = (await res.json().catch(() => ({}))) as NotchJson;
 
   if (!res.ok) {
     const detail =
@@ -100,6 +121,156 @@ async function notchFetch(path: string, init?: RequestInit) {
   return data;
 }
 
+function extractId(
+  value: string | { id?: string; reference?: string } | undefined,
+): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  return value.reference ?? value.id ?? null;
+}
+
+export function normalizeNotchStatus(status: string) {
+  const value = status.toLowerCase();
+  if (
+    value === "completed" ||
+    value === "success" ||
+    value === "successful" ||
+    value === "paid" ||
+    value === "complete"
+  ) {
+    return "complete";
+  }
+  if (value === "cancelled" || value === "canceled") return "canceled";
+  if (value === "sent") return "processing";
+  return value;
+}
+
+/** Encaisser un vote : init + process Mobile Money. */
+export async function collectVotePayment(params: {
+  amountXaf: number;
+  phone: string;
+  operator: "ORANGE" | "MTN";
+  reference: string;
+  description: string;
+  callbackUrl?: string;
+}) {
+  if (!isNotchPayConfigured()) {
+    return { mode: "demo" as const, reference: params.reference };
+  }
+
+  const phonePlus = formatNotchPhone(params.phone);
+  const phoneAccount = formatNotchAccount(params.phone);
+  const channel = channelFromOperator(params.operator);
+
+  const initialized = await notchFetch(
+    "/payments",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        amount: params.amountXaf,
+        currency: "XAF",
+        phone: phoneAccount,
+        customer: {
+          name: "Votant ForTheCulture",
+          phone: phonePlus,
+        },
+        description: params.description,
+        reference: params.reference,
+        locked_currency: "XAF",
+        locked_channel: channel,
+        locked_country: "CM",
+        ...(params.callbackUrl ? { callback: params.callbackUrl } : {}),
+        metadata: {
+          source: "fortheculture",
+          type: "vote",
+        },
+      }),
+    },
+    { grant: false },
+  );
+
+  const paymentRef =
+    extractId(initialized.transaction) ??
+    extractId(initialized.payment) ??
+    params.reference;
+
+  await notchFetch(
+    `/payments/${encodeURIComponent(paymentRef)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        channel,
+        data: {
+          phone: phoneAccount,
+          country: "CM",
+        },
+      }),
+    },
+    { grant: false },
+  );
+
+  return {
+    mode: "live" as const,
+    reference: paymentRef,
+  };
+}
+
+export async function getNotchPaymentStatus(paymentRef: string) {
+  if (!isNotchPayConfigured()) {
+    return { status: "complete" as const };
+  }
+
+  const data = await notchFetch(
+    `/payments/${encodeURIComponent(paymentRef)}`,
+    { method: "GET" },
+    { grant: false },
+  );
+
+  const rawStatus =
+    (typeof data.transaction === "object" && data.transaction?.status) ||
+    data.payment?.status ||
+    data.status ||
+    "pending";
+
+  return { status: normalizeNotchStatus(String(rawStatus)) };
+}
+
+async function createBeneficiary(params: {
+  name: string;
+  phone: string;
+  email?: string | null;
+  channel: NotchChannel;
+  reference: string;
+}) {
+  const phonePlus = formatNotchPhone(params.phone);
+  const account = formatNotchAccount(params.phone);
+
+  const data = await notchFetch("/beneficiaries", {
+    method: "POST",
+    body: JSON.stringify({
+      channel: params.channel,
+      name: params.name,
+      account_number: account,
+      phone: phonePlus,
+      ...(params.email ? { email: params.email } : {}),
+      country: "CM",
+      reference: `${params.reference}-BEN`,
+      description: "Artiste ForTheCulture",
+    }),
+  });
+
+  const id =
+    extractId(data.beneficiary) ??
+    extractId(data.recipient) ??
+    (typeof data.beneficiary === "string" ? data.beneficiary : null);
+
+  if (!id) {
+    throw new Error(data.message ?? "Bénéficiaire Notch Pay non créé");
+  }
+
+  return id;
+}
+
 export async function createNotchTransfer(params: {
   amountXaf: number;
   phone: string;
@@ -109,22 +280,24 @@ export async function createNotchTransfer(params: {
   reference: string;
   description: string;
 }) {
-  const phone = formatNotchPhone(params.phone);
+  const beneficiaryId = await createBeneficiary({
+    name: params.name,
+    phone: params.phone,
+    email: params.email,
+    channel: params.channel,
+    reference: params.reference,
+  });
 
   const data = await notchFetch("/transfers", {
     method: "POST",
     body: JSON.stringify({
       amount: params.amountXaf,
       currency: "XAF",
-      channel: params.channel,
       description: params.description,
       reference: params.reference,
-      beneficiary_data: {
-        name: params.name,
-        phone,
-        ...(params.email ? { email: params.email } : {}),
-        country: "CM",
-      },
+      beneficiary: beneficiaryId,
+      recipient: beneficiaryId,
+      channel: params.channel,
       metadata: {
         source: "fortheculture",
         type: "candidate_payout",
@@ -132,26 +305,58 @@ export async function createNotchTransfer(params: {
     }),
   });
 
-  if (!data.transfer?.id) {
+  const transferRaw = data.transfer;
+  if (!transferRaw) {
     throw new Error(data.message ?? "Transfert Notch Pay non créé");
   }
 
-  return data.transfer;
+  if (typeof transferRaw === "string") {
+    return {
+      id: transferRaw,
+      reference: params.reference,
+      status: "pending",
+    } satisfies NotchTransfer;
+  }
+
+  return {
+    id: transferRaw.id ?? transferRaw.reference,
+    reference: transferRaw.reference ?? params.reference,
+    amount: transferRaw.amount,
+    currency: transferRaw.currency,
+    status: transferRaw.status ?? "pending",
+    channel: transferRaw.channel,
+    description: transferRaw.description,
+    created_at: transferRaw.created_at,
+    completed_at: transferRaw.completed_at,
+    failure_reason: transferRaw.failure_reason,
+  } satisfies NotchTransfer;
 }
 
 export async function getNotchTransfer(idOrReference: string) {
-  const data = await notchFetch(`/transfers/${encodeURIComponent(idOrReference)}`);
-  if (!data.transfer) {
+  const data = await notchFetch(
+    `/transfers/${encodeURIComponent(idOrReference)}`,
+  );
+  const transferRaw = data.transfer;
+  if (!transferRaw) {
     throw new Error(data.message ?? "Transfert introuvable");
   }
-  return data.transfer;
-}
-
-export function normalizeNotchStatus(status: string) {
-  const value = status.toLowerCase();
-  if (value === "completed" || value === "success" || value === "successful") {
-    return "complete";
+  if (typeof transferRaw === "string") {
+    return {
+      id: transferRaw,
+      reference: idOrReference,
+      status: "pending",
+    } satisfies NotchTransfer;
   }
-  if (value === "cancelled") return "canceled";
-  return value;
+  return {
+    id: transferRaw.id ?? transferRaw.reference,
+    reference: transferRaw.reference ?? idOrReference,
+    amount: transferRaw.amount,
+    currency: transferRaw.currency,
+    status: transferRaw.status ?? "pending",
+    channel: transferRaw.channel,
+    description: transferRaw.description,
+    created_at: transferRaw.created_at,
+    completed_at: transferRaw.completed_at,
+    failure_reason: transferRaw.failure_reason,
+  } satisfies NotchTransfer;
 }

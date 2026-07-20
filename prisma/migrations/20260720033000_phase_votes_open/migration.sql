@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Phase" ADD COLUMN IF NOT EXISTS "votesOpen" BOOLEAN NOT NULL DEFAULT true;

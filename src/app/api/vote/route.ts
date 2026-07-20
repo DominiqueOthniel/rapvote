@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { collectPayment, isCampayConfigured } from "@/lib/campay";
+import {
+  collectVotePayment,
+  isNotchPayConfigured,
+} from "@/lib/notchpay";
 import { normalizeCameroonPhone } from "@/lib/money";
 import { confirmTransaction } from "@/lib/votes";
 
@@ -54,6 +57,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (phase.votesOpen === false) {
+      return NextResponse.json(
+        { error: "Les votes sont bloqués par l'administration pour cette phase." },
+        { status: 400 },
+      );
+    }
+
     if (!entry || entry.status !== "active") {
       return NextResponse.json(
         { error: "Ce candidat n'est pas en lice sur cette phase" },
@@ -77,11 +87,14 @@ export async function POST(request: Request) {
       },
     });
 
-    const payment = await collectPayment({
-      amount: votePackage.priceXaf,
+    const origin = new URL(request.url).origin;
+    const payment = await collectVotePayment({
+      amountXaf: votePackage.priceXaf,
       phone,
+      operator: parsed.data.operator,
+      reference,
       description: `ForTheCulture ${votePackage.votesCount} vote(s) pour ${candidate.stageName}`,
-      externalReference: reference,
+      callbackUrl: `${origin}/vote/succes?ref=${reference}`,
     });
 
     await prisma.transaction.update({
@@ -89,13 +102,14 @@ export async function POST(request: Request) {
       data: { campayRef: payment.reference },
     });
 
-    if (!isCampayConfigured() || payment.mode === "demo") {
+    if (!isNotchPayConfigured() || payment.mode === "demo") {
       await confirmTransaction(transaction.id);
       return NextResponse.json({
         ok: true,
         mode: "demo",
         reference,
-        message: "Paiement démo confirmé. Votes ajoutés.",
+        message:
+          "Mode démo : Notch Pay non configuré. Vote confirmé sans vrai paiement.",
         redirect: `/vote/succes?ref=${reference}`,
       });
     }
@@ -104,16 +118,14 @@ export async function POST(request: Request) {
       ok: true,
       mode: "live",
       reference,
-      campayRef: payment.reference,
-      ussdCode: payment.ussdCode,
+      paymentRef: payment.reference,
       message: "Valide le paiement sur ton téléphone (Orange Money ou MTN Money).",
       redirect: `/vote/succes?ref=${reference}`,
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Impossible de lancer le paiement" },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Impossible de lancer le paiement";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

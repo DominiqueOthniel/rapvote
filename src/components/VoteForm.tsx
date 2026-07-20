@@ -59,7 +59,9 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
   return (
     <form className="vote-form" onSubmit={onSubmit}>
       <h2>Voter pour {candidateName}</h2>
-      <p className="muted">50% des votes reviennent à l&apos;artiste, 50% à l&apos;organisation.</p>
+      <p className="muted">
+        Paiement via Notch Pay · 50% artiste · 50% organisation.
+      </p>
 
       <div className="pack-grid">
         {packages.map((pack) => (

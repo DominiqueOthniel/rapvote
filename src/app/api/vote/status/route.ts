@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getPaymentStatus } from "@/lib/campay";
+import { getNotchPaymentStatus } from "@/lib/notchpay";
 import { confirmTransaction } from "@/lib/votes";
 
 export async function GET(request: Request) {
@@ -24,17 +24,21 @@ export async function GET(request: Request) {
   }
 
   if (tx.campayRef) {
-    const status = await getPaymentStatus(tx.campayRef);
-    if (status.status === "SUCCESSFUL") {
-      const confirmed = await confirmTransaction(tx.id);
-      return NextResponse.json({ status: "paid", transaction: confirmed });
-    }
-    if (status.status === "FAILED") {
-      await prisma.transaction.update({
-        where: { id: tx.id },
-        data: { status: "failed" },
-      });
-      return NextResponse.json({ status: "failed", transaction: tx });
+    try {
+      const status = await getNotchPaymentStatus(tx.campayRef);
+      if (status.status === "complete") {
+        const confirmed = await confirmTransaction(tx.id);
+        return NextResponse.json({ status: "paid", transaction: confirmed });
+      }
+      if (status.status === "failed" || status.status === "canceled") {
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: { status: "failed" },
+        });
+        return NextResponse.json({ status: "failed", transaction: tx });
+      }
+    } catch (error) {
+      console.error("vote status notch", error);
     }
   }
 

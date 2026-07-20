@@ -47,7 +47,7 @@ async function activatePhase(formData: FormData) {
     });
     await db.phase.update({
       where: { id: phaseId },
-      data: { status: "active" },
+      data: { status: "active", votesOpen: true },
     });
 
     const previousActive = season.phases.find((p) => p.status === "active");
@@ -110,6 +110,24 @@ async function eliminateCandidate(formData: FormData) {
   revalidatePhaseViews();
 }
 
+async function togglePhaseVotes(formData: FormData) {
+  "use server";
+  const admin = await getAdminSession();
+  if (!admin) redirect("/admin/login");
+
+  const phaseId = String(formData.get("phaseId") ?? "");
+  const open = String(formData.get("open") ?? "") === "1";
+  if (!phaseId) return;
+
+  await prisma.phase.update({
+    where: { id: phaseId },
+    data: { votesOpen: open },
+  });
+
+  revalidatePhaseViews();
+  revalidatePath("/candidats");
+}
+
 export default async function AdminPhasesPage() {
   const admin = await getAdminSession();
   if (!admin) redirect("/admin/login");
@@ -142,7 +160,9 @@ export default async function AdminPhasesPage() {
   return (
     <main>
       <h1 className="page-title">Phases</h1>
-      <p className="muted">Active une phase pour ouvrir les votes.</p>
+      <p className="muted">
+        Active une phase, puis ouvre ou bloque les votes quand tu veux.
+      </p>
 
       <div className="phase-grid admin-phase-grid">
         {phases.map((phase) => {
@@ -159,6 +179,11 @@ export default async function AdminPhasesPage() {
                 <strong>{episode?.title ?? phase.theme ?? phase.title}</strong>
                 <p className="muted phase-status">
                   {episode ? getEpisodeLabel(episode) : null} · {phase.status}
+                  {phase.status === "active"
+                    ? phase.votesOpen
+                      ? " · votes ouverts"
+                      : " · votes bloqués"
+                    : null}
                 </p>
                 {phase.status !== "active" ? (
                   <form action={activatePhase}>
@@ -168,7 +193,20 @@ export default async function AdminPhasesPage() {
                     </button>
                   </form>
                 ) : (
-                  <span className="phase-active-label">Active</span>
+                  <div className="phase-vote-actions">
+                    <span className="phase-active-label">Active</span>
+                    <form action={togglePhaseVotes}>
+                      <input type="hidden" name="phaseId" value={phase.id} />
+                      <input
+                        type="hidden"
+                        name="open"
+                        value={phase.votesOpen ? "0" : "1"}
+                      />
+                      <button className="btn-ghost" type="submit">
+                        {phase.votesOpen ? "Bloquer les votes" : "Ouvrir les votes"}
+                      </button>
+                    </form>
+                  </div>
                 )}
               </div>
             </article>

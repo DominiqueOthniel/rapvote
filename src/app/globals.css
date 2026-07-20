@@ -856,6 +856,14 @@ select:focus-visible {
   color: var(--lime);
 }
 
+.phase-vote-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
 .score-rules {
   margin-bottom: 1rem;
 }
