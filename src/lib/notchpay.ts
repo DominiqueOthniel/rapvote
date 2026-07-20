@@ -18,6 +18,13 @@ export type NotchTransfer = {
   failure_reason?: string;
 };
 
+type NotchTransaction = {
+  id?: string;
+  reference?: string;
+  trxref?: string;
+  status?: string;
+};
+
 type NotchJson = {
   code?: number;
   status?: string;
@@ -25,7 +32,7 @@ type NotchJson = {
   transfer?: NotchTransfer | string;
   beneficiary?: string | { id?: string };
   recipient?: string | { id?: string };
-  transaction?: string | { id?: string; reference?: string; status?: string };
+  transaction?: string | NotchTransaction;
   payment?: { id?: string; reference?: string; status?: string };
   authorization_url?: string;
   errors?: Record<string, string[]>;
@@ -145,7 +152,17 @@ export function normalizeNotchStatus(status: string) {
   return value;
 }
 
-/** Encaisser un vote : init + process Mobile Money. */
+function notchPaymentRef(data: NotchJson, fallback: string) {
+  const tx = data.transaction;
+  if (typeof tx === "object" && tx?.reference) return tx.reference;
+  return (
+    extractId(data.transaction) ??
+    extractId(data.payment) ??
+    fallback
+  );
+}
+
+/** Encaisser un vote : init + process Mobile Money (push USSD). */
 export async function collectVotePayment(params: {
   amountXaf: number;
   phone: string;
@@ -158,8 +175,8 @@ export async function collectVotePayment(params: {
     return { mode: "demo" as const, reference: params.reference };
   }
 
+  // Notch exige le format international avec + pour déclencher le push.
   const phonePlus = formatNotchPhone(params.phone);
-  const phoneAccount = formatNotchAccount(params.phone);
   const channel = channelFromOperator(params.operator);
 
   const initialized = await notchFetch(
@@ -169,49 +186,46 @@ export async function collectVotePayment(params: {
       body: JSON.stringify({
         amount: params.amountXaf,
         currency: "XAF",
-        phone: phoneAccount,
         customer: {
           name: "Votant ForTheCulture",
           phone: phonePlus,
         },
         description: params.description,
         reference: params.reference,
-        locked_currency: "XAF",
-        locked_channel: channel,
-        locked_country: "CM",
         ...(params.callbackUrl ? { callback: params.callbackUrl } : {}),
         metadata: {
           source: "fortheculture",
           type: "vote",
+          operator: params.operator,
         },
       }),
     },
     { grant: false },
   );
 
-  const paymentRef =
-    extractId(initialized.transaction) ??
-    extractId(initialized.payment) ??
-    params.reference;
+  // Utiliser la référence Notch (trx....), pas seulement notre FTC-...
+  const paymentRef = notchPaymentRef(initialized, params.reference);
 
-  await notchFetch(
+  const processed = await notchFetch(
     `/payments/${encodeURIComponent(paymentRef)}`,
     {
-      method: "PUT",
+      method: "POST",
       body: JSON.stringify({
         channel,
         data: {
-          phone: phoneAccount,
-          country: "CM",
+          phone: phonePlus,
+          account_number: phonePlus,
         },
       }),
     },
     { grant: false },
   );
 
+  const finalRef = notchPaymentRef(processed, paymentRef);
+
   return {
     mode: "live" as const,
-    reference: paymentRef,
+    reference: finalRef,
   };
 }
 
@@ -229,7 +243,9 @@ export async function getNotchPaymentStatus(paymentRef: string) {
   const rawStatus =
     (typeof data.transaction === "object" && data.transaction?.status) ||
     data.payment?.status ||
-    data.status ||
+    (data.status && data.status !== "Accepted" && data.status !== "OK"
+      ? data.status
+      : null) ||
     "pending";
 
   return { status: normalizeNotchStatus(String(rawStatus)) };

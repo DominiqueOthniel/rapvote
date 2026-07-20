@@ -23,9 +23,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: "paid", transaction: tx });
   }
 
-  if (tx.campayRef) {
+  if (tx.campayRef || tx.reference) {
     try {
-      const status = await getNotchPaymentStatus(tx.campayRef);
+      const notchRef = tx.campayRef ?? tx.reference;
+      const status = await getNotchPaymentStatus(notchRef);
       if (status.status === "complete") {
         const confirmed = await confirmTransaction(tx.id);
         return NextResponse.json({ status: "paid", transaction: confirmed });
