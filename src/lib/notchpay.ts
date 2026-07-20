@@ -62,6 +62,18 @@ export function notchPublicKeyKind() {
   return "unknown";
 }
 
+/** Préfixe masqué pour diagnostiquer sans exposer la clé. */
+export function notchKeyDiagnostics() {
+  const { publicKey, privateKey } = getKeys();
+  return {
+    publicPrefix: publicKey ? publicKey.slice(0, 12) : null,
+    publicLength: publicKey?.length ?? 0,
+    privatePrefix: privateKey ? privateKey.slice(0, 12) : null,
+    privateLength: privateKey?.length ?? 0,
+    baseUrl: baseUrl(),
+  };
+}
+
 export function formatNotchPhone(phone: string) {
   const digits = normalizeCameroonPhone(phone);
   if (!digits.startsWith("237") || digits.length !== 12) {
