@@ -1,9 +1,12 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { VoteForm } from "@/components/VoteForm";
 import { TrackComments } from "@/components/TrackComments";
-import { getFanSession, getAdminSession } from "@/lib/auth";
+import {
+  getAdminSession,
+  getCandidateSession,
+  getFanSession,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   getActiveSeason,
@@ -15,19 +18,6 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
 
-async function deleteComment(formData: FormData) {
-  "use server";
-  const admin = await getAdminSession();
-  if (!admin) return;
-
-  const commentId = String(formData.get("commentId") ?? "");
-  const slug = String(formData.get("slug") ?? "");
-  if (!commentId) return;
-
-  await prisma.trackComment.delete({ where: { id: commentId } }).catch(() => null);
-  if (slug) revalidatePath(`/candidats/${slug}`);
-}
-
 export default async function CandidatePage({ params }: Props) {
   const { slug } = await params;
   const candidate = await prisma.candidate.findUnique({ where: { slug } });
@@ -38,6 +28,8 @@ export default async function CandidatePage({ params }: Props) {
   const packages = season?.packages ?? [];
   const fan = await getFanSession();
   const admin = await getAdminSession();
+  const candidateSession = await getCandidateSession();
+  const isOwner = candidateSession?.id === candidate.id;
 
   const entry = phase
     ? await prisma.phaseEntry.findUnique({
@@ -157,12 +149,12 @@ export default async function CandidatePage({ params }: Props) {
                   trackId={track.id}
                   fan={fan ? { id: fan.id, name: fan.name } : null}
                   isAdmin={Boolean(admin)}
-                  slug={slug}
-                  deleteCommentAction={deleteComment}
+                  isOwner={isOwner}
                   comments={track.comments.map((c) => ({
                     id: c.id,
                     body: c.body,
                     createdAt: c.createdAt.toISOString(),
+                    likedByArtist: c.likedByArtist,
                     fan: { name: c.fan.name },
                   }))}
                 />

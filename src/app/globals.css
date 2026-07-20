@@ -1559,9 +1559,26 @@ select:focus-visible {
   font-size: 0.85rem;
 }
 
-.comment-delete {
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 0.35rem;
+}
+
+.comment-delete,
+.comment-like {
   font-size: 0.85rem;
+}
+
+.comment-like.is-liked {
+  color: var(--accent);
+}
+
+.comment-liked {
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.02em;
 }
 
 .comment-form,

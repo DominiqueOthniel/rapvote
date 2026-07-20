@@ -8,6 +8,7 @@ type Comment = {
   id: string;
   body: string;
   createdAt: string;
+  likedByArtist: boolean;
   fan: { name: string };
 };
 
@@ -16,8 +17,7 @@ type Props = {
   comments: Comment[];
   fan: { id: string; name: string } | null;
   isAdmin?: boolean;
-  slug?: string;
-  deleteCommentAction?: (formData: FormData) => Promise<void>;
+  isOwner?: boolean;
 };
 
 export function TrackComments({
@@ -25,14 +25,17 @@ export function TrackComments({
   comments,
   fan,
   isAdmin,
-  slug,
-  deleteCommentAction,
+  isOwner,
 }: Props) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const canModerate = Boolean(isOwner || isAdmin);
 
   async function postComment(e: React.FormEvent) {
     e.preventDefault();
@@ -66,9 +69,58 @@ export function TrackComments({
     router.refresh();
   }
 
+  async function deleteComment(commentId: string) {
+    if (!confirm("Supprimer ce commentaire ?")) return;
+    setBusyId(commentId);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/tracks/comment/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error ?? "Suppression impossible");
+        setBusyId(null);
+        return;
+      }
+      setBusyId(null);
+      router.refresh();
+    } catch {
+      setActionError("Connexion impossible. Réessaie.");
+      setBusyId(null);
+    }
+  }
+
+  async function toggleLike(commentId: string) {
+    setBusyId(commentId);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/tracks/comment/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error ?? "Like impossible");
+        setBusyId(null);
+        return;
+      }
+      setBusyId(null);
+      router.refresh();
+    } catch {
+      setActionError("Connexion impossible. Réessaie.");
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="track-comments">
       <h4>Commentaires ({comments.length})</h4>
+
+      {actionError ? <p className="error">{actionError}</p> : null}
 
       {comments.length === 0 ? (
         <p className="muted">Aucun commentaire pour l&apos;instant.</p>
@@ -84,16 +136,38 @@ export function TrackComments({
                     timeStyle: "short",
                   })}
                 </span>
+                {comment.likedByArtist ? (
+                  <span className="comment-liked">Aimé par l&apos;artiste</span>
+                ) : null}
               </div>
               <p>{comment.body}</p>
-              {isAdmin && deleteCommentAction && slug ? (
-                <form action={deleteCommentAction}>
-                  <input type="hidden" name="commentId" value={comment.id} />
-                  <input type="hidden" name="slug" value={slug} />
-                  <button type="submit" className="btn-ghost comment-delete">
-                    Supprimer
-                  </button>
-                </form>
+              {canModerate || isOwner ? (
+                <div className="comment-actions">
+                  {isOwner ? (
+                    <button
+                      type="button"
+                      className={
+                        comment.likedByArtist
+                          ? "btn-ghost comment-like is-liked"
+                          : "btn-ghost comment-like"
+                      }
+                      disabled={busyId === comment.id}
+                      onClick={() => toggleLike(comment.id)}
+                    >
+                      {comment.likedByArtist ? "Retirer le like" : "Liker"}
+                    </button>
+                  ) : null}
+                  {canModerate ? (
+                    <button
+                      type="button"
+                      className="btn-ghost comment-delete"
+                      disabled={busyId === comment.id}
+                      onClick={() => deleteComment(comment.id)}
+                    >
+                      Supprimer
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </li>
           ))}
