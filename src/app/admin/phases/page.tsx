@@ -15,6 +15,9 @@ import {
   votePoints,
   VOTE_WEIGHT,
   JURY_WEIGHT,
+  PUBLIC_VOTES_FROM_PHASE,
+  publicVotesAffectScore,
+  weightsForPhase,
 } from "@/lib/scoring";
 import { formatVotes } from "@/lib/money";
 
@@ -149,6 +152,7 @@ export default async function AdminPhasesPage() {
 
   const activeEntries = sortByFinalScore(
     rawEntries.filter((entry) => entry.status === "active"),
+    active?.number ?? 0,
   );
   const eliminatedEntries = rawEntries
     .filter((entry) => entry.status !== "active")
@@ -156,6 +160,9 @@ export default async function AdminPhasesPage() {
   const entries = [...activeEntries, ...eliminatedEntries];
   const maxVotes = getMaxVotes(rawEntries);
   const rubric = getRubricForPhase(active?.number ?? 0);
+  const phaseNumber = active?.number ?? 0;
+  const weights = weightsForPhase(phaseNumber);
+  const votesInScore = publicVotesAffectScore(phaseNumber);
 
   return (
     <main>
@@ -224,11 +231,25 @@ export default async function AdminPhasesPage() {
               <p className="jury-question">« {rubric.question} »</p>
             ) : null}
             <p className="muted score-rules-text">
-              Carnet officiel des jurés · note sur 100 (somme des critères). Les
-              votes valent <strong>{Math.round(VOTE_WEIGHT * 100)}%</strong>, la
-              moyenne des {EXPECTED_JURY_COUNT} jurys vaut{" "}
-              <strong>{Math.round(JURY_WEIGHT * 100)}%</strong>. Espace{" "}
-              <a href="/jury/login">/jury</a>.
+              Carnet officiel des jurés · note sur 100 (somme des critères).{" "}
+              {votesInScore ? (
+                <>
+                  Votes publics :{" "}
+                  <strong>{Math.round(weights.voteWeight * 100)}%</strong>, moyenne
+                  des {EXPECTED_JURY_COUNT} jurys :{" "}
+                  <strong>{Math.round(weights.juryWeight * 100)}%</strong>.
+                </>
+              ) : (
+                <>
+                  Jusqu&apos;à l&apos;épisode {PUBLIC_VOTES_FROM_PHASE - 1}, la note
+                  est <strong>100% jury</strong> (les votes restent ouverts mais
+                  n&apos;entrent pas dans le score). À partir de l&apos;épisode{" "}
+                  {PUBLIC_VOTES_FROM_PHASE} : votes{" "}
+                  {Math.round(VOTE_WEIGHT * 100)}% / jury{" "}
+                  {Math.round(JURY_WEIGHT * 100)}%.
+                </>
+              )}{" "}
+              Espace <a href="/jury/login">/jury</a>.
             </p>
             <ul className="rubric-preview">
               {rubric.criteria.map((c) => (
@@ -238,8 +259,9 @@ export default async function AdminPhasesPage() {
               ))}
             </ul>
             <div className="score-rules-formula">
-              Score final = (part votes × {Math.round(VOTE_WEIGHT * 100)}%) + (moyenne
-              jury /100 × {Math.round(JURY_WEIGHT * 100)}%)
+              {votesInScore
+                ? `Score final = (part votes × ${Math.round(weights.voteWeight * 100)}%) + (moyenne jury /100 × ${Math.round(weights.juryWeight * 100)}%)`
+                : `Score final = moyenne jury /100 (votes hors note jusqu'à l'épisode ${PUBLIC_VOTES_FROM_PHASE - 1})`}
             </div>
             <p className="muted" style={{ marginTop: "0.75rem" }}>
               Profils jury :{" "}
@@ -275,9 +297,17 @@ export default async function AdminPhasesPage() {
                   {entries.map((entry, index) => {
                     const isActive = entry.status === "active";
                     const rank = isActive ? index + 1 : null;
-                    const votePart = votePoints(entry.votesCount, maxVotes);
-                    const juryPart = juryPoints(entry.juryScore);
-                    const finalScore = phaseFinalScore(entry, maxVotes);
+                    const votePart = votePoints(
+                      entry.votesCount,
+                      maxVotes,
+                      phaseNumber,
+                    );
+                    const juryPart = juryPoints(entry.juryScore, phaseNumber);
+                    const finalScore = phaseFinalScore(
+                      entry,
+                      maxVotes,
+                      phaseNumber,
+                    );
                     const scoredCount = entry.juryScores.length;
 
                     return (

@@ -70,7 +70,10 @@ export default async function JuryHomePage() {
       <p className="muted">
         {COMPETITION_BRAND} · Connecté en tant que <strong>{jury.name}</strong>.
         Note chaque critère. Le total /100 se calcule automatiquement. La moyenne
-        des {EXPECTED_JURY_COUNT} jurys compte pour 85% du score final de phase.
+        des {EXPECTED_JURY_COUNT} jurys compte pour 85% du score final à partir de
+        l&apos;épisode 9 (avant : 100% jury). Les votes restent ouverts dès le
+        début, mais n&apos;entrent dans la note qu&apos;à partir de l&apos;épisode
+        9.
       </p>
 
       {!activePhase ? (

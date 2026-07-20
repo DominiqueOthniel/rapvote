@@ -24,21 +24,27 @@ export async function getCurrentPhase(seasonId: string) {
 }
 
 export async function getPhaseRanking(phaseId: string) {
+  const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const entries = await prisma.phaseEntry.findMany({
     where: { phaseId, status: "active" },
     include: { candidate: true },
   });
 
-  return sortByFinalScore(entries);
+  return sortByFinalScore(entries, phase?.number ?? 0);
 }
 
 export async function getPhaseEntries(phaseId: string) {
+  const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const entries = await prisma.phaseEntry.findMany({
     where: { phaseId },
     include: { candidate: true },
   });
 
-  const active = sortByFinalScore(entries.filter((entry) => entry.status === "active"));
+  const phaseNumber = phase?.number ?? 0;
+  const active = sortByFinalScore(
+    entries.filter((entry) => entry.status === "active"),
+    phaseNumber,
+  );
   const eliminated = entries
     .filter((entry) => entry.status !== "active")
     .sort((a, b) => b.votesCount - a.votesCount);
