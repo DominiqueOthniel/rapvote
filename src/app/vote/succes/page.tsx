@@ -18,26 +18,39 @@ type Tx = {
 
 function SuccessInner() {
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref");
-  const [status, setStatus] = useState<"loading" | "paid" | "pending" | "failed">("loading");
+  // Notch peut renvoyer ref, reference ou trxref selon le callback.
+  const ref =
+    searchParams.get("ref") ??
+    searchParams.get("reference") ??
+    searchParams.get("trxref");
+  const [status, setStatus] = useState<"loading" | "paid" | "pending" | "failed">(
+    "loading",
+  );
   const [tx, setTx] = useState<Tx | null>(null);
 
   useEffect(() => {
     if (!ref) return;
     let alive = true;
+    let attempts = 0;
 
     async function check() {
-      const res = await fetch(`/api/vote/status?ref=${ref}`);
+      attempts += 1;
+      const res = await fetch(`/api/vote/status?ref=${encodeURIComponent(ref!)}`);
       const data = await res.json();
       if (!alive) return;
       if (data.status === "paid") {
         setStatus("paid");
         setTx(data.transaction);
-      } else if (data.status === "failed") {
+        return;
+      }
+      if (data.status === "failed") {
         setStatus("failed");
-      } else {
-        setStatus("pending");
-        setTimeout(check, 3000);
+        return;
+      }
+      setStatus("pending");
+      // Poll plus longtemps (jusqu'à ~5 min) pour ne pas rater la confirmation.
+      if (attempts < 100) {
+        setTimeout(check, attempts < 20 ? 2500 : 4000);
       }
     }
 
@@ -68,8 +81,8 @@ function SuccessInner() {
 
       {status === "pending" || status === "loading" ? (
         <p className="muted">
-          Valide sur ton téléphone (Orange Money / MTN Money). On actualise
-          automatiquement.
+          Valide sur ton téléphone (Orange Money / MTN Money). Dès que Notch
+          confirme le paiement, les votes sont ajoutés automatiquement.
         </p>
       ) : null}
 

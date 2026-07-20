@@ -2,18 +2,37 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getNotchPaymentStatus } from "@/lib/notchpay";
 import { confirmTransaction } from "@/lib/votes";
+import { reconcilePendingVotes } from "@/lib/reconcile-votes";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const reference = searchParams.get("ref");
+  const reference =
+    searchParams.get("ref") ??
+    searchParams.get("reference") ??
+    searchParams.get("trxref");
+
+  // Filet de sécurité: à chaque check, on rattrape aussi d'autres paiements orphelins.
+  void reconcilePendingVotes(8).catch((error) => {
+    console.error("background reconcile", error);
+  });
+
   if (!reference) {
     return NextResponse.json({ error: "Référence manquante" }, { status: 400 });
   }
 
-  const tx = await prisma.transaction.findUnique({
+  let tx = await prisma.transaction.findUnique({
     where: { reference },
     include: { candidate: true, package: true },
   });
+
+  if (!tx) {
+    tx = await prisma.transaction.findFirst({
+      where: { campayRef: reference },
+      include: { candidate: true, package: true },
+    });
+  }
 
   if (!tx) {
     return NextResponse.json({ error: "Transaction introuvable" }, { status: 404 });
@@ -23,9 +42,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: "paid", transaction: tx });
   }
 
-  if (tx.campayRef || tx.reference) {
+  const refsToTry = [tx.campayRef, tx.reference].filter(
+    (value): value is string => Boolean(value),
+  );
+
+  for (const notchRef of refsToTry) {
     try {
-      const notchRef = tx.campayRef ?? tx.reference;
       const status = await getNotchPaymentStatus(notchRef);
       if (status.status === "complete") {
         const confirmed = await confirmTransaction(tx.id);
@@ -40,9 +62,17 @@ export async function GET(request: Request) {
         return NextResponse.json({ status: "failed", transaction: failed });
       }
     } catch (error) {
-      console.error("vote status notch", error);
+      console.error("vote status notch", notchRef, error);
     }
   }
 
-  return NextResponse.json({ status: tx.status, transaction: tx });
+  const fresh = await prisma.transaction.findUnique({
+    where: { id: tx.id },
+    include: { candidate: true, package: true },
+  });
+
+  return NextResponse.json({
+    status: fresh?.status ?? tx.status,
+    transaction: fresh ?? tx,
+  });
 }

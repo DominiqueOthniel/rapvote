@@ -4,10 +4,16 @@ import {
   getCurrentPhase,
   getPhaseEntries,
 } from "@/lib/competition";
+import { reconcilePendingVotes } from "@/lib/reconcile-votes";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClassementPage() {
+  // Filet de sécurité: crédite les votes déjà payés chez Notch.
+  await reconcilePendingVotes(12).catch((error) => {
+    console.error("classement reconcile", error);
+  });
+
   const season = await getActiveSeason();
   const phase = season ? await getCurrentPhase(season.id) : null;
   const ranking = phase ? await getPhaseEntries(phase.id) : [];
