@@ -223,11 +223,28 @@ export default async function AdminVersementsPage() {
         <div className="admin-card" style={{ marginTop: "1.25rem" }}>
           <p className="error">
             Notch Pay non configuré. Ajoute NOTCHPAY_PUBLIC_KEY et
-            NOTCHPAY_PRIVATE_KEY, et whiteliste l&apos;IP Netlify sur
-            business.notchpay.co.
+            NOTCHPAY_PRIVATE_KEY.
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="admin-card" style={{ marginTop: "1.25rem" }}>
+          <p className="muted">
+            Si tu vois &quot;IP address not allowed&quot; : ouvre{" "}
+            <a href="/api/health/ip" target="_blank" rel="noreferrer">
+              /api/health/ip
+            </a>
+            , copie l&apos;IP, puis ajoute-la sur{" "}
+            <a
+              href="https://business.notchpay.co/settings/developer/ips"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Notch → Developer → IPs
+            </a>
+            .
+          </p>
+        </div>
+      )}
 
       <PayoutForm
         candidates={options}
