@@ -32,11 +32,12 @@ export async function GET(request: Request) {
         return NextResponse.json({ status: "paid", transaction: confirmed });
       }
       if (status.status === "failed" || status.status === "canceled") {
-        await prisma.transaction.update({
+        const failed = await prisma.transaction.update({
           where: { id: tx.id },
           data: { status: "failed" },
+          include: { candidate: true, package: true },
         });
-        return NextResponse.json({ status: "failed", transaction: tx });
+        return NextResponse.json({ status: "failed", transaction: failed });
       }
     } catch (error) {
       console.error("vote status notch", error);
