@@ -56,7 +56,7 @@ export function FanLoginForm({ onLoggedIn }: Props) {
         />
       </label>
       <label className="field">
-        <span>Numéro Mobile Money</span>
+        <span>Numéro de téléphone</span>
         <input
           type="tel"
           value={phone}

@@ -100,7 +100,7 @@ export function notchKeyDiagnostics() {
 export function formatNotchPhone(phone: string) {
   const digits = normalizeCameroonPhone(phone);
   if (!digits.startsWith("237") || digits.length !== 12) {
-    throw new Error("Numéro Mobile Money invalide (ex: 6XXXXXXXX)");
+    throw new Error("Numéro de téléphone invalide (ex: 6XXXXXXXX)");
   }
   return `+${digits}`;
 }

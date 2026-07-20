@@ -67,7 +67,7 @@ export function PayoutForm({ candidates, configured, action }: Props) {
         />
       </label>
       <label className="field">
-        <span>Numéro Mobile Money (optionnel)</span>
+        <span>Numéro de téléphone (optionnel)</span>
         <input
           name="phone"
           type="tel"

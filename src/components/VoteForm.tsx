@@ -106,7 +106,7 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
       </label>
 
       <label className="field">
-        <span>Numéro Mobile Money</span>
+        <span>Numéro de téléphone</span>
         <input
           type="tel"
           placeholder="6XX XXX XXX"
