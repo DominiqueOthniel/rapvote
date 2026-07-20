@@ -39,7 +39,21 @@ type NotchJson = {
 };
 
 function baseUrl() {
-  return process.env.NOTCHPAY_BASE_URL ?? "https://api.notchpay.co";
+  const raw = (process.env.NOTCHPAY_BASE_URL ?? "https://api.notchpay.co")
+    .trim()
+    .replace(/\/+$/, "");
+
+  // Erreur fréquente: coller l'URL du dashboard au lieu de l'API.
+  if (
+    !raw ||
+    raw.includes("business.notchpay.co") ||
+    raw.includes("pay.notchpay.co") ||
+    !raw.includes("api.notchpay.co")
+  ) {
+    return "https://api.notchpay.co";
+  }
+
+  return raw;
 }
 
 function getKeys() {
@@ -57,8 +71,17 @@ export function isNotchPayConfigured() {
 export function notchPublicKeyKind() {
   const { publicKey } = getKeys();
   if (!publicKey) return "missing";
-  if (publicKey.startsWith("pk_test")) return "test";
-  if (publicKey.startsWith("pk_live")) return "live";
+  // Formats Notch: pk.xxx / pk_live_xxx / pk_test_xxx
+  if (publicKey.startsWith("pk_test") || publicKey.startsWith("pk.test")) {
+    return "test";
+  }
+  if (
+    publicKey.startsWith("pk_live") ||
+    publicKey.startsWith("pk.live") ||
+    publicKey.startsWith("pk.")
+  ) {
+    return "live";
+  }
   return "unknown";
 }
 

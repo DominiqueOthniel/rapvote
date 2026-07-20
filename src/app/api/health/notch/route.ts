@@ -51,13 +51,15 @@ export async function GET() {
 
   const hint =
     keyKind === "test"
-      ? "Clés TEST: aucun vrai push Orange/MTN. Mets pk_live_ et sk_live_."
+      ? "Clés TEST: aucun vrai push Orange/MTN. Mets les clés live."
       : keyKind === "live"
-        ? "Clés LIVE OK. Si pas de push, vérifie numéro/opérateur dans Notch Business."
-        : "NOTCHPAY_PUBLIC_KEY doit commencer par pk_live_ (pas sk_, pas de guillemets).";
+        ? keys.baseUrl.includes("api.notchpay.co")
+          ? "Clés et API OK. Retente un vote."
+          : "Corrige NOTCHPAY_BASE_URL: doit être https://api.notchpay.co"
+        : "NOTCHPAY_PUBLIC_KEY invalide (attendu: pk....).";
 
   return NextResponse.json({
-    ok: keyKind === "live" && !notchError,
+    ok: keyKind === "live" && !notchError && keys.baseUrl.includes("api.notchpay.co"),
     configured: true,
     keyKind,
     keys,
