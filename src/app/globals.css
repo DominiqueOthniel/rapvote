@@ -1501,6 +1501,111 @@ select:focus-visible {
   }
 }
 
+.music-parcours {
+  margin-top: 2.5rem;
+  margin-bottom: 3rem;
+}
+
+.track-list {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.track-card {
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  background: color-mix(in srgb, var(--bg) 88%, var(--accent));
+}
+
+.track-card-head h3 {
+  margin: 0.25rem 0 0.85rem;
+  font-size: 1.25rem;
+}
+
+.phase-audio-player {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.track-comments h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.comment-item {
+  padding: 0.75rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+}
+
+.comment-date {
+  font-size: 0.85rem;
+}
+
+.comment-delete {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.comment-form,
+.fan-login-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.linkish {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font: inherit;
+}
+
+.phase-tracks-admin {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.phase-track-row {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.phase-track-upload {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 800px) {
+  .phase-track-row {
+    grid-template-columns: 1.1fr 1.4fr auto;
+    align-items: start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

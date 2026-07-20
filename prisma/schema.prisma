@@ -45,6 +45,7 @@ model Phase {
   entries     PhaseEntry[]
   votes       Vote[]
   transactions Transaction[]
+  tracks      PhaseTrack[]
 
   @@unique([seasonId, number])
 }
@@ -74,6 +75,7 @@ model Candidate {
   votes           Vote[]
   transactions    Transaction[]
   payouts         Payout[]
+  tracks          PhaseTrack[]
 }
 
 model PhaseEntry {
@@ -181,4 +183,38 @@ model Payout {
   updatedAt     DateTime  @updatedAt
   completedAt   DateTime?
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model Fan {
+  id        String         @id @default(cuid())
+  name      String
+  phone     String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  comments  TrackComment[]
+}
+
+model PhaseTrack {
+  id          String         @id @default(cuid())
+  candidateId String
+  phaseId     String
+  title       String?
+  audioUrl    String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  candidate   Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  phase       Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  comments    TrackComment[]
+
+  @@unique([candidateId, phaseId])
+}
+
+model TrackComment {
+  id        String     @id @default(cuid())
+  trackId   String
+  fanId     String
+  body      String
+  createdAt DateTime   @default(now())
+  track     PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  fan       Fan        @relation(fields: [fanId], references: [id], onDelete: Cascade)
 }

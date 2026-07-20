@@ -11,7 +11,12 @@ import { getActiveSeason, getCurrentPhase, uniqueCandidateSlug } from "@/lib/com
 import { prisma } from "@/lib/db";
 import { formatJuryNote } from "@/lib/scoring";
 import { formatVotes, formatXaf } from "@/lib/money";
-import { deleteCandidatePhotoFile, saveCandidatePhoto } from "@/lib/upload";
+import {
+  deleteCandidatePhotoFile,
+  deletePhaseAudioFile,
+  saveCandidatePhoto,
+  savePhaseAudio,
+} from "@/lib/upload";
 import { COMPETITION_BRAND } from "@/lib/parcours";
 import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
 
@@ -93,6 +98,86 @@ async function updateProfile(formData: FormData) {
   }
 }
 
+async function upsertPhaseTrack(formData: FormData) {
+  "use server";
+  const session = await getCandidateSession();
+  if (!session) redirect("/candidat/login");
+
+  const phaseId = String(formData.get("phaseId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const audio = formData.get("audio");
+
+  if (!phaseId || !(audio instanceof File) || audio.size === 0) return;
+
+  const candidate = await prisma.candidate.findUnique({
+    where: { id: session.id },
+  });
+  if (!candidate) return;
+
+  const phase = await prisma.phase.findFirst({
+    where: { id: phaseId, seasonId: candidate.seasonId },
+  });
+  if (!phase) return;
+
+  let audioUrl: string;
+  try {
+    const uploaded = await savePhaseAudio(audio, candidate.slug, phase.number);
+    if (!uploaded) return;
+    audioUrl = uploaded;
+  } catch {
+    return;
+  }
+
+  const existing = await prisma.phaseTrack.findUnique({
+    where: {
+      candidateId_phaseId: {
+        candidateId: candidate.id,
+        phaseId: phase.id,
+      },
+    },
+  });
+
+  if (existing) {
+    await deletePhaseAudioFile(existing.audioUrl);
+    await prisma.phaseTrack.update({
+      where: { id: existing.id },
+      data: {
+        audioUrl,
+        title: title || existing.title,
+      },
+    });
+  } else {
+    await prisma.phaseTrack.create({
+      data: {
+        candidateId: candidate.id,
+        phaseId: phase.id,
+        audioUrl,
+        title: title || null,
+      },
+    });
+  }
+
+  revalidateCandidateViews(candidate.slug);
+}
+
+async function deletePhaseTrack(formData: FormData) {
+  "use server";
+  const session = await getCandidateSession();
+  if (!session) redirect("/candidat/login");
+
+  const trackId = String(formData.get("trackId") ?? "");
+  if (!trackId) return;
+
+  const track = await prisma.phaseTrack.findFirst({
+    where: { id: trackId, candidateId: session.id },
+  });
+  if (!track) return;
+
+  await deletePhaseAudioFile(track.audioUrl);
+  await prisma.phaseTrack.delete({ where: { id: track.id } });
+  revalidateCandidateViews(session.slug);
+}
+
 export default async function CandidateDashboardPage() {
   const session = await getCandidateSession();
   if (!session) redirect("/candidat/login");
@@ -118,6 +203,12 @@ export default async function CandidateDashboardPage() {
           },
         })
       : null;
+
+  const phases = season?.phases ?? [];
+  const tracks = await prisma.phaseTrack.findMany({
+    where: { candidateId: candidate.id },
+  });
+  const trackByPhase = new Map(tracks.map((t) => [t.phaseId, t]));
 
   const paidOut = await getCandidatePaidOutXaf(candidate.id);
   const balanceDue = await getCandidateBalanceDue(
@@ -261,6 +352,87 @@ export default async function CandidateDashboardPage() {
           </button>
         </form>
       </div>
+
+      <section className="admin-card" style={{ marginTop: "1.5rem" }}>
+        <h2 className="admin-form-title">Sons par phase</h2>
+        <p className="muted">
+          Un son par étape. Visible sur ta page publique avec les commentaires
+          des fans.
+        </p>
+
+        <div className="phase-tracks-admin">
+          {phases.length === 0 ? (
+            <p className="muted">Aucune phase pour le moment.</p>
+          ) : (
+            phases.map((p) => {
+              const track = trackByPhase.get(p.id);
+              return (
+                <div key={p.id} className="phase-track-row">
+                  <div>
+                    <strong>
+                      E{p.number} · {p.theme ?? p.title}
+                    </strong>
+                    <p className="muted">
+                      {track ? "Son en ligne" : "Pas encore de son"}
+                    </p>
+                    {track ? (
+                      <audio
+                        controls
+                        preload="none"
+                        src={track.audioUrl}
+                        className="phase-audio-player"
+                      >
+                        Lecteur audio
+                      </audio>
+                    ) : null}
+                  </div>
+
+                  <form
+                    action={upsertPhaseTrack}
+                    encType="multipart/form-data"
+                    className="phase-track-upload"
+                  >
+                    <input type="hidden" name="phaseId" value={p.id} />
+                    <label className="field">
+                      <span>Titre (optionnel)</span>
+                      <input
+                        name="title"
+                        defaultValue={track?.title ?? ""}
+                        placeholder="Ex: Freestyle final"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Fichier audio</span>
+                      <input
+                        className="file-input"
+                        name="audio"
+                        type="file"
+                        accept="audio/mpeg,audio/mp4,audio/wav,audio/webm,audio/ogg,.mp3,.m4a,.wav"
+                        required
+                      />
+                      <span className="field-hint">
+                        MP3, M4A, WAV · max 15 Mo
+                      </span>
+                    </label>
+                    <button className="btn-primary" type="submit">
+                      {track ? "Remplacer le son" : "Uploader le son"}
+                    </button>
+                  </form>
+
+                  {track ? (
+                    <form action={deletePhaseTrack}>
+                      <input type="hidden" name="trackId" value={track.id} />
+                      <button className="btn-ghost" type="submit">
+                        Supprimer
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
     </main>
   );
 }

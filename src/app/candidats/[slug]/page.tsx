@@ -1,6 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { VoteForm } from "@/components/VoteForm";
+import { TrackComments } from "@/components/TrackComments";
+import { getFanSession, getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   getActiveSeason,
@@ -12,6 +15,19 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
 
+async function deleteComment(formData: FormData) {
+  "use server";
+  const admin = await getAdminSession();
+  if (!admin) return;
+
+  const commentId = String(formData.get("commentId") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+  if (!commentId) return;
+
+  await prisma.trackComment.delete({ where: { id: commentId } }).catch(() => null);
+  if (slug) revalidatePath(`/candidats/${slug}`);
+}
+
 export default async function CandidatePage({ params }: Props) {
   const { slug } = await params;
   const candidate = await prisma.candidate.findUnique({ where: { slug } });
@@ -20,6 +36,8 @@ export default async function CandidatePage({ params }: Props) {
   const season = await getActiveSeason();
   const phase = season ? await getCurrentPhase(season.id) : null;
   const packages = season?.packages ?? [];
+  const fan = await getFanSession();
+  const admin = await getAdminSession();
 
   const entry = phase
     ? await prisma.phaseEntry.findUnique({
@@ -31,6 +49,18 @@ export default async function CandidatePage({ params }: Props) {
         },
       })
     : null;
+
+  const tracks = await prisma.phaseTrack.findMany({
+    where: { candidateId: candidate.id },
+    include: {
+      phase: true,
+      comments: {
+        orderBy: { createdAt: "desc" },
+        include: { fan: { select: { name: true } } },
+      },
+    },
+    orderBy: { phase: { number: "asc" } },
+  });
 
   return (
     <main className="shell candidate-hero">
@@ -90,6 +120,57 @@ export default async function CandidatePage({ params }: Props) {
           </p>
         </section>
       )}
+
+      <section className="music-parcours">
+        <div className="section-head">
+          <div>
+            <p className="muted">Sons</p>
+            <h2>Parcours musical</h2>
+          </div>
+        </div>
+
+        {tracks.length === 0 ? (
+          <p className="muted">
+            Aucun son publié pour le moment. L&apos;artiste upload depuis son
+            espace.
+          </p>
+        ) : (
+          <div className="track-list">
+            {tracks.map((track) => (
+              <article key={track.id} className="track-card">
+                <header className="track-card-head">
+                  <p className="muted">
+                    E{track.phase.number} ·{" "}
+                    {track.phase.theme ?? track.phase.title}
+                  </p>
+                  <h3>{track.title ?? `Son phase ${track.phase.number}`}</h3>
+                </header>
+                <audio
+                  controls
+                  preload="none"
+                  src={track.audioUrl}
+                  className="phase-audio-player"
+                >
+                  Lecteur audio
+                </audio>
+                <TrackComments
+                  trackId={track.id}
+                  fan={fan ? { id: fan.id, name: fan.name } : null}
+                  isAdmin={Boolean(admin)}
+                  slug={slug}
+                  deleteCommentAction={deleteComment}
+                  comments={track.comments.map((c) => ({
+                    id: c.id,
+                    body: c.body,
+                    createdAt: c.createdAt.toISOString(),
+                    fan: { name: c.fan.name },
+                  }))}
+                />
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

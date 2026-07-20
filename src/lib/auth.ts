@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 export const ADMIN_COOKIE = "fortheculture_admin";
 export const JURY_COOKIE = "fortheculture_jury";
 export const CANDIDATE_COOKIE = "fortheculture_candidat";
+export const FAN_COOKIE = "fortheculture_fan";
 
 const cookieOptions = {
   httpOnly: true,
@@ -13,6 +14,11 @@ const cookieOptions = {
   secure: process.env.NODE_ENV === "production",
   path: "/",
   maxAge: 60 * 60 * 24 * 7,
+};
+
+const fanCookieOptions = {
+  ...cookieOptions,
+  maxAge: 60 * 60 * 24 * 30,
 };
 
 function getSecret() {
@@ -156,4 +162,45 @@ export async function requireCandidate() {
   const candidate = await getCandidateSession();
   if (!candidate) throw new Error("UNAUTHORIZED");
   return candidate;
+}
+
+export async function createFanToken(fanId: string) {
+  return new SignJWT({ sub: fanId, role: "fan" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(getSecret());
+}
+
+export async function createFanSession(fanId: string) {
+  const token = await createFanToken(fanId);
+  const jar = await cookies();
+  jar.set(FAN_COOKIE, token, fanCookieOptions);
+}
+
+export async function destroyFanSession() {
+  const jar = await cookies();
+  jar.delete(FAN_COOKIE);
+}
+
+export async function getFanSession() {
+  const jar = await cookies();
+  const token = jar.get(FAN_COOKIE)?.value;
+  if (!token) return null;
+
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.role !== "fan") return null;
+    const fanId = payload.sub;
+    if (!fanId) return null;
+    return prisma.fan.findUnique({ where: { id: fanId } });
+  } catch {
+    return null;
+  }
+}
+
+export async function requireFan() {
+  const fan = await getFanSession();
+  if (!fan) throw new Error("UNAUTHORIZED");
+  return fan;
 }

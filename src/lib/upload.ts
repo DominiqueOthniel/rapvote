@@ -2,13 +2,25 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { mkdir, writeFile, unlink } from "fs/promises";
 import path from "path";
 
-const ALLOWED_TYPES: Record<string, string> = {
+const ALLOWED_PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
 
-const MAX_BYTES = 4 * 1024 * 1024;
+const ALLOWED_AUDIO_TYPES: Record<string, string> = {
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+};
+
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 const BUCKET = "candidates";
 
 function getSupabaseAdmin(): SupabaseClient | null {
@@ -34,8 +46,11 @@ async function ensureBucket(client: SupabaseClient) {
 
   const { error } = await client.storage.createBucket(BUCKET, {
     public: true,
-    fileSizeLimit: MAX_BYTES,
-    allowedMimeTypes: Object.keys(ALLOWED_TYPES),
+    fileSizeLimit: MAX_AUDIO_BYTES,
+    allowedMimeTypes: [
+      ...Object.keys(ALLOWED_PHOTO_TYPES),
+      ...Object.keys(ALLOWED_AUDIO_TYPES),
+    ],
   });
 
   if (error && !/already exists|duplicate/i.test(error.message)) {
@@ -45,28 +60,40 @@ async function ensureBucket(client: SupabaseClient) {
 
 function validatePhoto(file: File) {
   if (!file || file.size === 0) return null;
-  if (file.size > MAX_BYTES) {
+  if (file.size > MAX_PHOTO_BYTES) {
     throw new Error("Photo trop lourde (max 4 Mo)");
   }
-  const ext = ALLOWED_TYPES[file.type];
+  const ext = ALLOWED_PHOTO_TYPES[file.type];
   if (!ext) {
     throw new Error("Format photo invalide (JPG, PNG ou WebP)");
   }
   return ext;
 }
 
-async function saveToSupabase(file: File, slug: string, ext: string) {
+function validateAudio(file: File) {
+  if (!file || file.size === 0) return null;
+  if (file.size > MAX_AUDIO_BYTES) {
+    throw new Error("Son trop lourd (max 15 Mo)");
+  }
+  const ext = ALLOWED_AUDIO_TYPES[file.type];
+  if (!ext) {
+    throw new Error("Format audio invalide (MP3, M4A, WAV, WebM ou OGG)");
+  }
+  return ext;
+}
+
+async function uploadToSupabase(
+  file: File,
+  objectPath: string,
+): Promise<string> {
   const client = getSupabaseAdmin();
   if (!client) {
     throw new Error(
-      "Upload photo indisponible : configure SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY",
+      "Upload indisponible : configure SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY",
     );
   }
 
   await ensureBucket(client);
-
-  const filename = `${slug}-${Date.now()}.${ext}`;
-  const objectPath = `photos/${filename}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error } = await client.storage.from(BUCKET).upload(objectPath, buffer, {
@@ -82,7 +109,7 @@ async function saveToSupabase(file: File, slug: string, ext: string) {
   return data.publicUrl;
 }
 
-async function saveToLocal(file: File, slug: string, ext: string) {
+async function savePhotoToLocal(file: File, slug: string, ext: string) {
   const dir = path.join(process.cwd(), "public", "uploads", "candidates");
   await mkdir(dir, { recursive: true });
 
@@ -93,6 +120,22 @@ async function saveToLocal(file: File, slug: string, ext: string) {
   return `/uploads/candidates/${filename}`;
 }
 
+async function saveAudioToLocal(
+  file: File,
+  slug: string,
+  phaseNumber: number,
+  ext: string,
+) {
+  const dir = path.join(process.cwd(), "public", "uploads", "audio", slug);
+  await mkdir(dir, { recursive: true });
+
+  const filename = `phase-${phaseNumber}-${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(path.join(dir, filename), buffer);
+
+  return `/uploads/audio/${slug}/${filename}`;
+}
+
 export async function saveCandidatePhoto(
   file: File,
   slug: string,
@@ -101,10 +144,9 @@ export async function saveCandidatePhoto(
   if (!ext) return null;
 
   if (isSupabaseStorageConfigured()) {
-    return saveToSupabase(file, slug, ext);
+    return uploadToSupabase(file, `photos/${slug}-${Date.now()}.${ext}`);
   }
 
-  // Local only (dev). Netlify filesystem is read-only.
   if (process.env.NETLIFY === "true" || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     throw new Error(
       "Photo impossible sur Netlify sans Supabase Storage. Ajoute SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
@@ -112,7 +154,7 @@ export async function saveCandidatePhoto(
   }
 
   try {
-    return await saveToLocal(file, slug, ext);
+    return await savePhotoToLocal(file, slug, ext);
   } catch {
     throw new Error(
       "Impossible d'enregistrer la photo en local. Configure Supabase Storage.",
@@ -120,11 +162,40 @@ export async function saveCandidatePhoto(
   }
 }
 
-export async function deleteCandidatePhotoFile(photoUrl: string | null) {
-  if (!photoUrl) return;
+export async function savePhaseAudio(
+  file: File,
+  slug: string,
+  phaseNumber: number,
+): Promise<string | null> {
+  const ext = validateAudio(file);
+  if (!ext) return null;
 
-  if (photoUrl.startsWith("/uploads/candidates/")) {
-    const filePath = path.join(process.cwd(), "public", photoUrl.slice(1));
+  const objectPath = `audio/${slug}/phase-${phaseNumber}-${Date.now()}.${ext}`;
+
+  if (isSupabaseStorageConfigured()) {
+    return uploadToSupabase(file, objectPath);
+  }
+
+  if (process.env.NETLIFY === "true" || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error(
+      "Son impossible sur Netlify sans Supabase Storage. Ajoute SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+
+  try {
+    return await saveAudioToLocal(file, slug, phaseNumber, ext);
+  } catch {
+    throw new Error(
+      "Impossible d'enregistrer le son en local. Configure Supabase Storage.",
+    );
+  }
+}
+
+async function deleteStorageUrl(fileUrl: string | null) {
+  if (!fileUrl) return;
+
+  if (fileUrl.startsWith("/uploads/")) {
+    const filePath = path.join(process.cwd(), "public", fileUrl.slice(1));
     try {
       await unlink(filePath);
     } catch {
@@ -137,11 +208,19 @@ export async function deleteCandidatePhotoFile(photoUrl: string | null) {
   if (!client) return;
 
   const marker = `/object/public/${BUCKET}/`;
-  const idx = photoUrl.indexOf(marker);
+  const idx = fileUrl.indexOf(marker);
   if (idx === -1) return;
 
-  const objectPath = photoUrl.slice(idx + marker.length).split("?")[0];
+  const objectPath = fileUrl.slice(idx + marker.length).split("?")[0];
   if (!objectPath) return;
 
   await client.storage.from(BUCKET).remove([decodeURIComponent(objectPath)]);
+}
+
+export async function deleteCandidatePhotoFile(photoUrl: string | null) {
+  await deleteStorageUrl(photoUrl);
+}
+
+export async function deletePhaseAudioFile(audioUrl: string | null) {
+  await deleteStorageUrl(audioUrl);
 }
