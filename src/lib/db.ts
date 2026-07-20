@@ -5,27 +5,23 @@ import pg from "pg";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function prepareDatabaseUrl(raw: string) {
-  const url = new URL(raw);
+  const url = new URL(raw.trim());
 
   // Pooler transaction (6543) : Prisma a besoin de pgbouncer=true
   if (url.port === "6543" && !url.searchParams.has("pgbouncer")) {
     url.searchParams.set("pgbouncer", "true");
   }
 
-  if (!url.searchParams.has("sslmode")) {
-    url.searchParams.set("sslmode", "require");
-  }
-
-  // Limite les connexions sur serverless Netlify
-  if (!url.searchParams.has("connection_limit")) {
-    url.searchParams.set("connection_limit", "1");
-  }
+  // pg 8 traite sslmode=require comme verify-full et ignore rejectUnauthorized.
+  // On gère le SSL via la config Pool ci-dessous.
+  url.searchParams.delete("sslmode");
+  url.searchParams.delete("uselibpqcompat");
 
   return url.toString();
 }
 
 function createPrismaClient() {
-  const raw = process.env.DATABASE_URL;
+  const raw = process.env.DATABASE_URL?.trim();
   if (!raw) {
     throw new Error(
       "DATABASE_URL manquant. Ajoute l'URL Postgres Supabase (pooler) dans les variables Netlify.",

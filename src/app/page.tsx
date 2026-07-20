@@ -12,16 +12,32 @@ import { getEpisodeByNumber } from "@/lib/parcours";
 
 export const dynamic = "force-dynamic";
 
-function SetupMessage({ message }: { message: string }) {
+function SetupMessage({
+  message,
+  detail,
+}: {
+  message: string;
+  detail?: string;
+}) {
   return (
     <main className="shell">
       <div className="hero">
         <p className="hero-kicker">ForTheCulture · New Star Punch</p>
         <h1>Configuration requise</h1>
         <p>{message}</p>
+        {detail ? (
+          <p
+            className="muted"
+            style={{ marginTop: "1rem", wordBreak: "break-word" }}
+          >
+            Détail technique : {detail}
+          </p>
+        ) : null}
         <p className="muted" style={{ marginTop: "1rem" }}>
-          Sur Netlify, ajoute DATABASE_URL (Supabase pooler), DIRECT_URL et
-          AUTH_SECRET, puis relance un déploiement.
+          Diagnostic :{" "}
+          <Link href="/api/health/db" className="btn-ghost">
+            /api/health/db
+          </Link>
         </p>
       </div>
     </main>
@@ -32,9 +48,14 @@ export default async function HomePage() {
   let season;
   try {
     season = await getActiveSeason();
-  } catch {
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Erreur base de données";
     return (
-      <SetupMessage message="Impossible de joindre la base de données. Vérifie les variables d'environnement Netlify." />
+      <SetupMessage
+        message="Impossible de joindre la base de données."
+        detail={detail}
+      />
     );
   }
 
