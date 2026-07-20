@@ -49,23 +49,31 @@ export async function GET() {
     }
   }
 
-  const hint =
-    keyKind === "test"
-      ? "Clés TEST: aucun vrai push Orange/MTN. Mets les clés live."
-      : keyKind === "live"
-        ? keys.baseUrl.includes("api.notchpay.co")
-          ? "Clés et API OK. Retente un vote."
-          : "Corrige NOTCHPAY_BASE_URL: doit être https://api.notchpay.co"
-        : "NOTCHPAY_PUBLIC_KEY invalide (attendu: pk....).";
+  const apiOk = keys.baseUrl.includes("api.notchpay.co");
+  const keysOk = keyKind === "live";
+  // "Payment Not Found" sur une vieille FTC créée avant le fix n'est pas bloquant.
+  const staleLookup =
+    Boolean(notchError?.toLowerCase().includes("not found")) &&
+    Boolean(latest?.campayRef?.startsWith("FTC-"));
+
+  const hint = !keysOk
+    ? "NOTCHPAY_PUBLIC_KEY invalide (attendu: pk....)."
+    : !apiOk
+      ? "Corrige NOTCHPAY_BASE_URL: doit être https://api.notchpay.co"
+      : staleLookup
+        ? "Clés et API OK. Ancienne transaction fantôme ignorée. Retente un nouveau vote."
+        : notchError
+          ? `Clés OK mais Notch répond: ${notchError}`
+          : "Clés et API OK. Retente un vote.";
 
   return NextResponse.json({
-    ok: keyKind === "live" && !notchError && keys.baseUrl.includes("api.notchpay.co"),
+    ok: keysOk && apiOk && (!notchError || staleLookup),
     configured: true,
     keyKind,
     keys,
     hint,
     latestPending: latest,
     notchStatus,
-    notchError,
+    notchError: staleLookup ? null : notchError,
   });
 }
