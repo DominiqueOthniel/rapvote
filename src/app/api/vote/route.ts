@@ -114,13 +114,20 @@ export async function POST(request: Request) {
       });
     }
 
+    // Si le push direct échoue, on envoie le votant sur le checkout Notch.
+    const authorizationUrl =
+      "authorizationUrl" in payment ? payment.authorizationUrl : null;
+
     return NextResponse.json({
       ok: true,
       mode: "live",
       reference,
       paymentRef: payment.reference,
-      message: "Valide le paiement sur ton téléphone (Orange Money ou MTN Money).",
-      redirect: `/vote/succes?ref=${reference}`,
+      authorizationUrl: authorizationUrl ?? null,
+      message: authorizationUrl
+        ? "Redirection vers Notch Pay pour valider le Mobile Money."
+        : "Valide le paiement sur ton téléphone (Orange Money ou MTN Money).",
+      redirect: authorizationUrl || `/vote/succes?ref=${reference}`,
     });
   } catch (error) {
     console.error(error);

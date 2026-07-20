@@ -54,6 +54,14 @@ export function isNotchPayConfigured() {
   return Boolean(publicKey && privateKey);
 }
 
+export function notchPublicKeyKind() {
+  const { publicKey } = getKeys();
+  if (!publicKey) return "missing";
+  if (publicKey.startsWith("pk_test")) return "test";
+  if (publicKey.startsWith("pk_live")) return "live";
+  return "unknown";
+}
+
 export function formatNotchPhone(phone: string) {
   const digits = normalizeCameroonPhone(phone);
   if (!digits.startsWith("237") || digits.length !== 12) {
@@ -115,7 +123,15 @@ async function notchFetch(
     cache: "no-store",
   });
 
-  const data = (await res.json().catch(() => ({}))) as NotchJson;
+  const text = await res.text();
+  let data = {} as NotchJson;
+  try {
+    data = text ? (JSON.parse(text) as NotchJson) : {};
+  } catch {
+    throw new Error(
+      `Notch Pay: réponse non JSON (HTTP ${res.status}) ${text.slice(0, 120)}`,
+    );
+  }
 
   if (!res.ok) {
     const detail =
@@ -148,21 +164,38 @@ export function normalizeNotchStatus(status: string) {
     return "complete";
   }
   if (value === "cancelled" || value === "canceled") return "canceled";
-  if (value === "sent") return "processing";
+  if (value === "sent" || value === "processing" || value === "pending") {
+    return value === "sent" ? "processing" : value;
+  }
   return value;
 }
 
-function notchPaymentRef(data: NotchJson, fallback: string) {
+function notchPaymentRef(data: NotchJson, fallback?: string) {
   const tx = data.transaction;
   if (typeof tx === "object" && tx?.reference) return tx.reference;
-  return (
-    extractId(data.transaction) ??
-    extractId(data.payment) ??
-    fallback
-  );
+  if (data.payment?.reference) return data.payment.reference;
+  const extracted =
+    extractId(data.transaction) ?? extractId(data.payment) ?? null;
+  return extracted ?? fallback ?? null;
 }
 
-/** Encaisser un vote : init + process Mobile Money (push USSD). */
+function describeNotchPayload(data: NotchJson) {
+  return JSON.stringify({
+    code: data.code,
+    status: data.status,
+    message: data.message,
+    keys: Object.keys(data),
+    transactionType: typeof data.transaction,
+    paymentRef: data.payment?.reference ?? null,
+    txRef:
+      typeof data.transaction === "object"
+        ? data.transaction?.reference
+        : data.transaction,
+    authorization_url: Boolean(data.authorization_url),
+  });
+}
+
+/** Encaisser un vote : init + process Mobile Money, sinon checkout Notch. */
 export async function collectVotePayment(params: {
   amountXaf: number;
   phone: string;
@@ -175,7 +208,6 @@ export async function collectVotePayment(params: {
     return { mode: "demo" as const, reference: params.reference };
   }
 
-  // Notch exige le format international avec + pour déclencher le push.
   const phonePlus = formatNotchPhone(params.phone);
   const channel = channelFromOperator(params.operator);
 
@@ -186,12 +218,18 @@ export async function collectVotePayment(params: {
       body: JSON.stringify({
         amount: params.amountXaf,
         currency: "XAF",
+        email: "votant@fortheculture.cm",
+        phone: phonePlus,
         customer: {
           name: "Votant ForTheCulture",
+          email: "votant@fortheculture.cm",
           phone: phonePlus,
         },
         description: params.description,
         reference: params.reference,
+        locked_currency: "XAF",
+        locked_channel: channel,
+        locked_country: "CM",
         ...(params.callbackUrl ? { callback: params.callbackUrl } : {}),
         metadata: {
           source: "fortheculture",
@@ -203,29 +241,70 @@ export async function collectVotePayment(params: {
     { grant: false },
   );
 
-  // Utiliser la référence Notch (trx....), pas seulement notre FTC-...
   const paymentRef = notchPaymentRef(initialized, params.reference);
+  if (!paymentRef) {
+    throw new Error(
+      `Notch Pay: paiement créé sans référence. ${describeNotchPayload(initialized)}`,
+    );
+  }
 
-  const processed = await notchFetch(
-    `/payments/${encodeURIComponent(paymentRef)}`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        channel,
-        data: {
-          phone: phonePlus,
-          account_number: phonePlus,
+  const authorizationUrl = initialized.authorization_url ?? null;
+  if (!authorizationUrl) {
+    // Sans URL checkout, on tente quand même le process direct.
+    try {
+      const processed = await notchFetch(
+        `/payments/${encodeURIComponent(paymentRef)}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            channel,
+            data: {
+              phone: phonePlus,
+              account_number: phonePlus,
+            },
+          }),
         },
-      }),
-    },
-    { grant: false },
-  );
+        { grant: false },
+      );
+      return {
+        mode: "live" as const,
+        reference: notchPaymentRef(processed, paymentRef) ?? paymentRef,
+        authorizationUrl: null,
+      };
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : `Notch Pay: pas d'URL checkout et process impossible. ${describeNotchPayload(initialized)}`,
+      );
+    }
+  }
 
-  const finalRef = notchPaymentRef(processed, paymentRef);
+  // Checkout Notch: plus fiable pour déclencher Orange/MTN Money.
+  // On tente aussi le process direct (push) avant la redirection.
+  try {
+    await notchFetch(
+      `/payments/${encodeURIComponent(paymentRef)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          channel,
+          data: {
+            phone: phonePlus,
+            account_number: phonePlus,
+          },
+        }),
+      },
+      { grant: false },
+    );
+  } catch {
+    // Le checkout couvre ce cas.
+  }
 
   return {
     mode: "live" as const,
-    reference: finalRef,
+    reference: paymentRef,
+    authorizationUrl,
   };
 }
 

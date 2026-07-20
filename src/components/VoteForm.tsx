@@ -49,6 +49,14 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
         setLoading(false);
         return;
       }
+      // Checkout Notch (auth URL) = navigation complète hors du site.
+      if (
+        typeof data.authorizationUrl === "string" &&
+        data.authorizationUrl.startsWith("http")
+      ) {
+        window.location.href = data.authorizationUrl;
+        return;
+      }
       router.push(data.redirect);
     } catch {
       setError("Connexion impossible. Réessaie.");
