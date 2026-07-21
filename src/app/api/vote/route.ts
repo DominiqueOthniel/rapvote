@@ -7,14 +7,23 @@ import {
 } from "@/lib/notchpay";
 import { normalizeCameroonPhone } from "@/lib/money";
 import { confirmTransaction } from "@/lib/votes";
+import {
+  MAX_CUSTOM_VOTES,
+  priceForVotes,
+} from "@/lib/vote-packs";
 
-const schema = z.object({
-  candidateId: z.string().min(1),
-  packageId: z.string().min(1),
-  phaseId: z.string().min(1),
-  phone: z.string().min(8),
-  operator: z.enum(["ORANGE", "MTN"]),
-});
+const schema = z
+  .object({
+    candidateId: z.string().min(1),
+    phaseId: z.string().min(1),
+    phone: z.string().min(8),
+    operator: z.enum(["ORANGE", "MTN"]),
+    packageId: z.string().min(1).optional(),
+    customVotes: z.number().int().min(1).max(MAX_CUSTOM_VOTES).optional(),
+  })
+  .refine((data) => Boolean(data.packageId) || Boolean(data.customVotes), {
+    message: "Pack ou nombre de votes requis",
+  });
 
 export async function POST(request: Request) {
   try {
@@ -32,9 +41,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const [candidate, votePackage, phase, entry] = await Promise.all([
+    const [candidate, phase, entry] = await Promise.all([
       prisma.candidate.findUnique({ where: { id: parsed.data.candidateId } }),
-      prisma.votePackage.findUnique({ where: { id: parsed.data.packageId } }),
       prisma.phase.findUnique({ where: { id: parsed.data.phaseId } }),
       prisma.phaseEntry.findUnique({
         where: {
@@ -46,8 +54,8 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    if (!candidate || !votePackage || !phase) {
-      return NextResponse.json({ error: "Candidat ou pack introuvable" }, { status: 404 });
+    if (!candidate || !phase) {
+      return NextResponse.json({ error: "Candidat ou phase introuvable" }, { status: 404 });
     }
 
     if (phase.status !== "active") {
@@ -71,6 +79,46 @@ export async function POST(request: Request) {
       );
     }
 
+    let votesCount: number;
+    let amountXaf: number;
+    let packageId: string;
+
+    if (parsed.data.customVotes) {
+      votesCount = parsed.data.customVotes;
+      amountXaf = priceForVotes(votesCount);
+
+      const unitPack =
+        (await prisma.votePackage.findFirst({
+          where: {
+            seasonId: candidate.seasonId,
+            votesCount: 1,
+            isActive: true,
+          },
+        })) ??
+        (await prisma.votePackage.findFirst({
+          where: { seasonId: candidate.seasonId, isActive: true },
+          orderBy: { sortOrder: "asc" },
+        }));
+
+      if (!unitPack) {
+        return NextResponse.json(
+          { error: "Aucun pack de votes configuré pour la saison" },
+          { status: 400 },
+        );
+      }
+      packageId = unitPack.id;
+    } else {
+      const votePackage = await prisma.votePackage.findUnique({
+        where: { id: parsed.data.packageId },
+      });
+      if (!votePackage || !votePackage.isActive) {
+        return NextResponse.json({ error: "Pack introuvable" }, { status: 404 });
+      }
+      votesCount = votePackage.votesCount;
+      amountXaf = votePackage.priceXaf;
+      packageId = votePackage.id;
+    }
+
     const reference = `FTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const transaction = await prisma.transaction.create({
@@ -78,22 +126,22 @@ export async function POST(request: Request) {
         reference,
         phaseId: phase.id,
         candidateId: candidate.id,
-        packageId: votePackage.id,
+        packageId,
         voterPhone: phone,
         operator: parsed.data.operator,
-        votesCount: votePackage.votesCount,
-        amountXaf: votePackage.priceXaf,
+        votesCount,
+        amountXaf,
         status: "pending",
       },
     });
 
     const origin = new URL(request.url).origin;
     const payment = await collectVotePayment({
-      amountXaf: votePackage.priceXaf,
+      amountXaf,
       phone,
       operator: parsed.data.operator,
       reference,
-      description: `ForTheCulture ${votePackage.votesCount} vote(s) pour ${candidate.stageName}`,
+      description: `ForTheCulture ${votesCount} vote(s) pour ${candidate.stageName}`,
       callbackUrl: `${origin}/vote/succes?ref=${reference}`,
     });
 
@@ -114,7 +162,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Si le push direct échoue, on envoie le votant sur le checkout Notch.
     const authorizationUrl =
       "authorizationUrl" in payment ? payment.authorizationUrl : null;
 

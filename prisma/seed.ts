@@ -107,9 +107,16 @@ async function main() {
       packages: {
         create: [
           { label: "1 vote", votesCount: 1, priceXaf: 100, sortOrder: 1 },
-          { label: "5 votes", votesCount: 5, priceXaf: 450, sortOrder: 2 },
-          { label: "10 votes", votesCount: 10, priceXaf: 800, sortOrder: 3 },
-          { label: "50 votes", votesCount: 50, priceXaf: 3500, sortOrder: 4 },
+          { label: "2 votes", votesCount: 2, priceXaf: 200, sortOrder: 2 },
+          { label: "3 votes", votesCount: 3, priceXaf: 300, sortOrder: 3 },
+          { label: "5 votes", votesCount: 5, priceXaf: 450, sortOrder: 4 },
+          { label: "10 votes", votesCount: 10, priceXaf: 800, sortOrder: 5 },
+          { label: "20 votes", votesCount: 20, priceXaf: 1500, sortOrder: 6 },
+          { label: "25 votes", votesCount: 25, priceXaf: 1800, sortOrder: 7 },
+          { label: "50 votes", votesCount: 50, priceXaf: 3500, sortOrder: 8 },
+          { label: "100 votes", votesCount: 100, priceXaf: 6500, sortOrder: 9 },
+          { label: "200 votes", votesCount: 200, priceXaf: 12000, sortOrder: 10 },
+          { label: "500 votes", votesCount: 500, priceXaf: 28000, sortOrder: 11 },
         ],
       },
       phases: {

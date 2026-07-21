@@ -839,6 +839,64 @@ select:focus-visible {
   gap: 0.6rem;
 }
 
+.pack-grid-dense {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vote-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin: 0.85rem 0 1rem;
+}
+
+.vote-mode-tab {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  padding: 0.65rem 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.vote-mode-tab.active {
+  color: #111;
+  background: var(--lime);
+  border-color: var(--lime);
+}
+
+.vote-custom-box {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(18, 15, 13, 0.55);
+}
+
+.vote-custom-preview {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.vote-custom-preview strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.03em;
+  color: var(--lime);
+}
+
+.vote-summary {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .pack {
   display: grid;
   gap: 0.25rem;
@@ -1568,6 +1626,10 @@ select:focus-visible {
   .pack-grid,
   .operator-row {
     grid-template-columns: 1fr;
+  }
+
+  .pack-grid-dense {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .artist-card:hover {

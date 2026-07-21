@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatXaf } from "@/lib/money";
+import {
+  MAX_CUSTOM_VOTES,
+  priceForVotes,
+} from "@/lib/vote-packs";
 
 type VotePackage = {
   id: string;
@@ -18,18 +22,58 @@ type Props = {
   packages: VotePackage[];
 };
 
+type Mode = "pack" | "custom";
+
 export function VoteForm({ candidateId, candidateName, phaseId, packages }: Props) {
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>("pack");
   const [packageId, setPackageId] = useState(packages[0]?.id ?? "");
+  const [customVotes, setCustomVotes] = useState("15");
   const [phone, setPhone] = useState("");
   const [operator, setOperator] = useState<"ORANGE" | "MTN">("ORANGE");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const customCount = Math.floor(Number(customVotes));
+  const customPrice = useMemo(
+    () =>
+      Number.isFinite(customCount) && customCount >= 1
+        ? priceForVotes(customCount)
+        : 0,
+    [customCount],
+  );
+
+  const selectedPack = packages.find((p) => p.id === packageId);
+  const summary =
+    mode === "custom"
+      ? Number.isFinite(customCount) && customCount >= 1
+        ? `${customCount} vote${customCount > 1 ? "s" : ""} · ${formatXaf(customPrice)}`
+        : "Choisis un nombre de votes"
+      : selectedPack
+        ? `${selectedPack.label} · ${formatXaf(selectedPack.priceXaf)}`
+        : "Choisis un pack";
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (mode === "custom") {
+      if (!Number.isFinite(customCount) || customCount < 1) {
+        setError("Entre un nombre de votes valide (minimum 1).");
+        setLoading(false);
+        return;
+      }
+      if (customCount > MAX_CUSTOM_VOTES) {
+        setError(`Maximum ${MAX_CUSTOM_VOTES} votes par paiement.`);
+        setLoading(false);
+        return;
+      }
+    } else if (!packageId) {
+      setError("Choisis un pack de votes.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/vote", {
@@ -37,10 +81,12 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           candidateId,
-          packageId,
           phaseId,
           phone,
           operator,
+          ...(mode === "custom"
+            ? { customVotes: customCount }
+            : { packageId }),
         }),
       });
       const data = await res.json();
@@ -49,7 +95,6 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
         setLoading(false);
         return;
       }
-      // Checkout Notch (auth URL) = navigation complète hors du site.
       if (
         typeof data.authorizationUrl === "string" &&
         data.authorizationUrl.startsWith("http")
@@ -71,19 +116,67 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
         Paiement via Notch Pay · 50% artiste · 50% organisation.
       </p>
 
-      <div className="pack-grid">
-        {packages.map((pack) => (
-          <button
-            key={pack.id}
-            type="button"
-            className={packageId === pack.id ? "pack active" : "pack"}
-            onClick={() => setPackageId(pack.id)}
-          >
-            <strong>{pack.label}</strong>
-            <span>{formatXaf(pack.priceXaf)}</span>
-          </button>
-        ))}
+      <div className="vote-mode-tabs">
+        <button
+          type="button"
+          className={mode === "pack" ? "vote-mode-tab active" : "vote-mode-tab"}
+          onClick={() => setMode("pack")}
+        >
+          Packs
+        </button>
+        <button
+          type="button"
+          className={
+            mode === "custom" ? "vote-mode-tab active" : "vote-mode-tab"
+          }
+          onClick={() => setMode("custom")}
+        >
+          Nombre libre
+        </button>
       </div>
+
+      {mode === "pack" ? (
+        <div className="pack-grid pack-grid-dense">
+          {packages.map((pack) => (
+            <button
+              key={pack.id}
+              type="button"
+              className={packageId === pack.id ? "pack active" : "pack"}
+              onClick={() => setPackageId(pack.id)}
+            >
+              <strong>{pack.label}</strong>
+              <span>{formatXaf(pack.priceXaf)}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="vote-custom-box">
+          <label className="field">
+            <span>Combien de votes ?</span>
+            <input
+              type="number"
+              min={1}
+              max={MAX_CUSTOM_VOTES}
+              step={1}
+              value={customVotes}
+              onChange={(e) => setCustomVotes(e.target.value)}
+              required={mode === "custom"}
+              placeholder="Ex: 15"
+            />
+            <span className="field-hint">
+              De 1 à {MAX_CUSTOM_VOTES} · tarif dégressif selon le volume
+            </span>
+          </label>
+          <div className="vote-custom-preview">
+            <span className="muted">Total à payer</span>
+            <strong>
+              {customPrice > 0 ? formatXaf(customPrice) : "—"}
+            </strong>
+          </div>
+        </div>
+      )}
+
+      <p className="vote-summary">{summary}</p>
 
       <label className="field">
         <span>Opérateur</span>
@@ -118,7 +211,14 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
 
       {error ? <p className="error">{error}</p> : null}
 
-      <button className="btn-primary" type="submit" disabled={loading || !packageId}>
+      <button
+        className="btn-primary"
+        type="submit"
+        disabled={
+          loading ||
+          (mode === "pack" ? !packageId : customPrice <= 0)
+        }
+      >
         {loading ? "Traitement..." : "Payer et voter"}
       </button>
     </form>

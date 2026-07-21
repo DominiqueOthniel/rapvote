@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { sortByFinalScore } from "@/lib/scoring";
+import { DEFAULT_VOTE_PACKS } from "@/lib/vote-packs";
+import { ensureSeasonVotePackages } from "@/lib/ensure-vote-packages";
 
 export function cumulativeVotes(entry: {
   votesCount: number;
@@ -28,13 +30,24 @@ export async function syncPhaseEntryVotes(phaseId: string) {
 }
 
 export async function getActiveSeason() {
-  return prisma.season.findFirst({
+  const season = await prisma.season.findFirst({
     where: { isActive: true },
     include: {
       phases: { orderBy: { number: "asc" } },
       packages: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
     },
   });
+
+  if (!season) return null;
+
+  const have = new Set(season.packages.map((p) => p.votesCount));
+  const missing = DEFAULT_VOTE_PACKS.some((p) => !have.has(p.votesCount));
+  if (missing || season.packages.length < DEFAULT_VOTE_PACKS.length) {
+    const packages = await ensureSeasonVotePackages(season.id);
+    return { ...season, packages };
+  }
+
+  return season;
 }
 
 export async function getCurrentPhase(seasonId: string) {
