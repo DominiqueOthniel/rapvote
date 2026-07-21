@@ -5,7 +5,6 @@ import { TrackComments } from "@/components/TrackComments";
 import { BackNav } from "@/components/BackNav";
 import { TrackListenCard } from "@/components/TrackListenCard";
 import {
-  getAdminSession,
   getCandidateSession,
   getFanSession,
 } from "@/lib/auth";
@@ -29,7 +28,6 @@ export default async function CandidatePage({ params }: Props) {
   const phase = season ? await getCurrentPhase(season.id) : null;
   const packages = season?.packages ?? [];
   const fan = await getFanSession();
-  const admin = await getAdminSession();
   const candidateSession = await getCandidateSession();
   const isOwner = candidateSession?.id === candidate.id;
 
