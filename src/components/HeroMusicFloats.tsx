@@ -160,8 +160,10 @@ export function HeroMusicFloats() {
     const layer = layerRef.current;
     if (!layer) return;
 
+    const el: HTMLDivElement = layer;
+
     function onMove(e: PointerEvent) {
-      const rect = layer.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
       const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
       setTilt({
@@ -174,11 +176,11 @@ export function HeroMusicFloats() {
       setTilt({ x: 0, y: 0 });
     }
 
-    layer.addEventListener("pointermove", onMove);
-    layer.addEventListener("pointerleave", onLeave);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
     return () => {
-      layer.removeEventListener("pointermove", onMove);
-      layer.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
     };
   }, []);
 
