@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { VoteForm } from "@/components/VoteForm";
 import { TrackComments } from "@/components/TrackComments";
 import { BackNav } from "@/components/BackNav";
+import { TrackListenCard } from "@/components/TrackListenCard";
 import {
   getAdminSession,
   getCandidateSession,
@@ -133,21 +134,12 @@ export default async function CandidatePage({ params }: Props) {
           <div className="track-list">
             {tracks.map((track) => (
               <article key={track.id} className="track-card">
-                <header className="track-card-head">
-                  <p className="muted">
-                    E{track.phase.number} ·{" "}
-                    {track.phase.theme ?? track.phase.title}
-                  </p>
-                  <h3>{track.title ?? `Son phase ${track.phase.number}`}</h3>
-                </header>
-                <audio
-                  controls
-                  preload="none"
-                  src={track.audioUrl}
-                  className="phase-audio-player"
-                >
-                  Lecteur audio
-                </audio>
+                <TrackListenCard
+                  title={track.title ?? `Son phase ${track.phase.number}`}
+                  phaseLabel={`E${track.phase.number} · ${track.phase.theme ?? track.phase.title}`}
+                  audioUrl={track.audioUrl}
+                  lyrics={track.lyrics}
+                />
                 <TrackComments
                   trackId={track.id}
                   fan={fan ? { id: fan.id, name: fan.name } : null}

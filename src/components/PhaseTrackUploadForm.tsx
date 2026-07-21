@@ -7,18 +7,46 @@ type Props = {
   phaseId: string;
   hasTrack: boolean;
   defaultTitle?: string | null;
+  defaultLyrics?: string | null;
 };
 
 export function PhaseTrackUploadForm({
   phaseId,
   hasTrack,
   defaultTitle,
+  defaultLyrics,
 }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(defaultTitle ?? "");
+  const [lyrics, setLyrics] = useState(defaultLyrics ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
+
+  async function saveMetaOnly() {
+    setLoading(true);
+    setError(null);
+    setProgress("Enregistrement des lyrics...");
+    try {
+      const res = await fetch("/api/tracks/lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phaseId,
+          title: title.trim() || undefined,
+          lyrics: lyrics.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Enregistrement impossible");
+      setProgress("Lyrics enregistrées");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,7 +56,12 @@ export function PhaseTrackUploadForm({
     const form = e.currentTarget;
     const fileInput = form.elements.namedItem("audio") as HTMLInputElement;
     const file = fileInput.files?.[0];
+
     if (!file) {
+      if (hasTrack) {
+        await saveMetaOnly();
+        return;
+      }
       setError("Choisis un fichier audio");
       return;
     }
@@ -85,6 +118,7 @@ export function PhaseTrackUploadForm({
           phaseId,
           publicUrl: prepData.publicUrl,
           title: title.trim() || undefined,
+          lyrics: lyrics.trim() || undefined,
         }),
       });
       const confirmData = await confirm.json();
@@ -114,23 +148,40 @@ export function PhaseTrackUploadForm({
         />
       </label>
       <label className="field">
-        <span>Fichier audio</span>
+        <span>Lyrics</span>
+        <textarea
+          name="lyrics"
+          value={lyrics}
+          onChange={(e) => setLyrics(e.target.value)}
+          rows={8}
+          maxLength={12000}
+          placeholder={"Colle ici les paroles...\n\nCouplet 1\n...\nRefrain"}
+        />
+        <span className="field-hint">
+          Texte libre · visible à côté du player pour lire en écoutant
+        </span>
+      </label>
+      <label className="field">
+        <span>Fichier audio {hasTrack ? "(optionnel pour remplacer)" : ""}</span>
         <input
           className="file-input"
           name="audio"
           type="file"
           accept="audio/mpeg,audio/mp4,audio/wav,audio/webm,audio/ogg,.mp3,.m4a,.wav"
-          required
+          required={!hasTrack}
         />
-        <span className="field-hint">MP3, M4A, WAV · max 15 Mo · upload direct</span>
+        <span className="field-hint">
+          MP3, M4A, WAV · max 15 Mo · upload direct
+          {hasTrack ? " · laisse vide pour garder le son actuel" : ""}
+        </span>
       </label>
       {error ? <p className="error">{error}</p> : null}
       {progress && !error ? <p className="muted">{progress}</p> : null}
       <button className="btn-primary" type="submit" disabled={loading}>
         {loading
-          ? "Upload..."
+          ? "Envoi..."
           : hasTrack
-            ? "Remplacer le son"
+            ? "Enregistrer son / lyrics"
             : "Uploader le son"}
       </button>
     </form>

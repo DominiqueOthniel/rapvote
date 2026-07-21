@@ -215,6 +215,7 @@ model PhaseTrack {
   phaseId     String
   title       String?
   audioUrl    String
+  lyrics      String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   candidate   Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)

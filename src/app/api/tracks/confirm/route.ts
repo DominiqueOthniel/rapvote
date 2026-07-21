@@ -9,6 +9,7 @@ const schema = z.object({
   phaseId: z.string().min(1),
   publicUrl: z.string().url(),
   title: z.string().trim().max(120).optional(),
+  lyrics: z.string().trim().max(12000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -56,6 +57,10 @@ export async function POST(request: Request) {
       data: {
         audioUrl: parsed.data.publicUrl,
         title: parsed.data.title || existing.title,
+        lyrics:
+          parsed.data.lyrics !== undefined
+            ? parsed.data.lyrics || null
+            : existing.lyrics,
       },
     });
   } else {
@@ -65,6 +70,7 @@ export async function POST(request: Request) {
         phaseId: phase.id,
         audioUrl: parsed.data.publicUrl,
         title: parsed.data.title || null,
+        lyrics: parsed.data.lyrics || null,
       },
     });
   }

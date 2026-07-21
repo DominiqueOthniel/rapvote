@@ -389,8 +389,8 @@ export default async function CandidateDashboardPage() {
       <section className="admin-card" style={{ marginTop: "1.5rem" }}>
         <h2 className="admin-form-title">Sons par phase</h2>
         <p className="muted">
-          Un son par étape. Visible sur ta page publique avec les commentaires
-          des fans.
+          Un son par étape, avec lyrics optionnelles. Visible sur ta page
+          publique pour lire et écouter en même temps.
         </p>
 
         <div className="phase-tracks-admin">
@@ -406,7 +406,11 @@ export default async function CandidateDashboardPage() {
                       E{p.number} · {p.theme ?? p.title}
                     </strong>
                     <p className="muted">
-                      {track ? "Son en ligne" : "Pas encore de son"}
+                      {track
+                        ? track.lyrics
+                          ? "Son en ligne · lyrics OK"
+                          : "Son en ligne · sans lyrics"
+                        : "Pas encore de son"}
                     </p>
                     {track ? (
                       <audio
@@ -424,6 +428,7 @@ export default async function CandidateDashboardPage() {
                     phaseId={p.id}
                     hasTrack={Boolean(track)}
                     defaultTitle={track?.title}
+                    defaultLyrics={track?.lyrics}
                   />
 
                   {track ? (
