@@ -75,6 +75,7 @@ model Candidate {
   votes           Vote[]
   transactions    Transaction[]
   payouts         Payout[]
+  payoutRequests  PayoutRequest[]
   tracks          PhaseTrack[]
 }
 
@@ -183,6 +184,20 @@ model Payout {
   updatedAt     DateTime  @updatedAt
   completedAt   DateTime?
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model PayoutRequest {
+  id          String    @id @default(cuid())
+  candidateId String
+  amountXaf   Int
+  phone       String?
+  message     String?
+  status      String    @default("pending")
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  handledAt   DateTime?
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
 
 model Fan {

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 
 /** Montants déjà réservés ou versés (pending / processing / complete). */
 const LOCKED_STATUSES = ["pending", "processing", "complete"] as const;
+const REQUEST_LOCKED_STATUSES = ["pending"] as const;
 
 export async function getCandidatePaidOutXaf(candidateId: string) {
   const result = await prisma.payout.aggregate({
@@ -14,9 +15,23 @@ export async function getCandidatePaidOutXaf(candidateId: string) {
   return result._sum.amountXaf ?? 0;
 }
 
+export async function getCandidateRequestedXaf(candidateId: string) {
+  const result = await prisma.payoutRequest.aggregate({
+    where: {
+      candidateId,
+      status: { in: [...REQUEST_LOCKED_STATUSES] },
+    },
+    _sum: { amountXaf: true },
+  });
+  return result._sum.amountXaf ?? 0;
+}
+
 export async function getCandidateBalanceDue(candidateId: string, totalEarnedXaf: number) {
-  const paidOrLocked = await getCandidatePaidOutXaf(candidateId);
-  return Math.max(0, totalEarnedXaf - paidOrLocked);
+  const [paidOrLocked, requested] = await Promise.all([
+    getCandidatePaidOutXaf(candidateId),
+    getCandidateRequestedXaf(candidateId),
+  ]);
+  return Math.max(0, totalEarnedXaf - paidOrLocked - requested);
 }
 
 export function makePayoutReference() {

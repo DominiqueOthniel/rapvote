@@ -10,7 +10,7 @@ import {
 import { getActiveSeason, getCurrentPhase, uniqueCandidateSlug } from "@/lib/competition";
 import { prisma } from "@/lib/db";
 import { formatJuryNote } from "@/lib/scoring";
-import { formatVotes, formatXaf } from "@/lib/money";
+import { formatVotes, formatXaf, normalizeCameroonPhone } from "@/lib/money";
 import {
   deleteCandidatePhotoFile,
   deletePhaseAudioFile,
@@ -19,6 +19,7 @@ import {
 import { COMPETITION_BRAND } from "@/lib/parcours";
 import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
 import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
+import { WithdrawalRequestForm } from "@/components/WithdrawalRequestForm";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ function revalidateCandidateViews(slug: string) {
   revalidatePath("/");
   revalidatePath("/classement");
   revalidatePath("/admin/candidats");
+  revalidatePath("/admin/versements");
+  revalidatePath("/admin");
   revalidatePath(`/candidats/${slug}`);
 }
 
@@ -116,6 +119,74 @@ async function deletePhaseTrack(formData: FormData) {
   revalidateCandidateViews(session.slug);
 }
 
+async function requestWithdrawal(formData: FormData) {
+  "use server";
+  const session = await getCandidateSession();
+  if (!session) redirect("/candidat/login");
+
+  const amountXaf = Math.round(Number(formData.get("amountXaf") ?? 0));
+  const phoneRaw = String(formData.get("phone") ?? "").trim();
+  const message = String(formData.get("message") ?? "").trim().slice(0, 400);
+
+  if (!Number.isFinite(amountXaf) || amountXaf < 100) {
+    return { ok: false, error: "Montant minimum : 100 XAF." };
+  }
+
+  const candidate = await prisma.candidate.findUnique({
+    where: { id: session.id },
+  });
+  if (!candidate) return { ok: false, error: "Profil introuvable." };
+
+  const phone = phoneRaw || candidate.phone || "";
+  if (!phone) {
+    return {
+      ok: false,
+      error: "Ajoute un numéro de téléphone pour recevoir le versement.",
+    };
+  }
+
+  const balance = await getCandidateBalanceDue(
+    candidate.id,
+    candidate.totalEarnedXaf,
+  );
+  if (amountXaf > balance) {
+    return {
+      ok: false,
+      error: `Solde insuffisant. Disponible : ${formatXaf(balance)}.`,
+    };
+  }
+
+  const pendingExists = await prisma.payoutRequest.findFirst({
+    where: { candidateId: candidate.id, status: "pending" },
+  });
+  if (pendingExists) {
+    return {
+      ok: false,
+      error: "Tu as déjà une demande en attente. Attends le traitement admin.",
+    };
+  }
+
+  await prisma.payoutRequest.create({
+    data: {
+      candidateId: candidate.id,
+      amountXaf,
+      phone: normalizeCameroonPhone(phone),
+      message: message || null,
+      status: "pending",
+    },
+  });
+
+  if (!candidate.phone && phoneRaw) {
+    await prisma.candidate.update({
+      where: { id: candidate.id },
+      data: { phone: normalizeCameroonPhone(phoneRaw) },
+    });
+  }
+
+  revalidateCandidateViews(candidate.slug);
+  return { ok: true };
+}
+
 export default async function CandidateDashboardPage() {
   const session = await getCandidateSession();
   if (!session) redirect("/candidat/login");
@@ -153,6 +224,11 @@ export default async function CandidateDashboardPage() {
     candidate.id,
     candidate.totalEarnedXaf,
   );
+  const withdrawalRequests = await prisma.payoutRequest.findMany({
+    where: { candidateId: candidate.id },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
 
   return (
     <main>
@@ -200,6 +276,35 @@ export default async function CandidateDashboardPage() {
               Voir ma page publique
             </Link>
           </p>
+        </section>
+
+        <WithdrawalRequestForm
+          balanceDue={balanceDue}
+          defaultPhone={candidate.phone ?? ""}
+          action={requestWithdrawal}
+        />
+
+        <section className="admin-card">
+          <h2 className="admin-form-title">Mes demandes de retrait</h2>
+          {withdrawalRequests.length === 0 ? (
+            <p className="muted">Aucune demande pour le moment.</p>
+          ) : (
+            <ul className="candidate-stats">
+              {withdrawalRequests.map((req) => (
+                <li key={req.id}>
+                  <span className="muted">
+                    {new Date(req.createdAt).toLocaleString("fr-FR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                    {" · "}
+                    {req.status}
+                  </span>
+                  <strong>{formatXaf(req.amountXaf)}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <form

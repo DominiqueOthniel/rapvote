@@ -16,7 +16,7 @@ export default async function AdminDashboardPage() {
   const season = await getActiveSeason();
   const phase = season ? await getCurrentPhase(season.id) : null;
 
-  const [candidatesCount, paidTx, totals] = await Promise.all([
+  const [candidatesCount, paidTx, totals, pendingRequests] = await Promise.all([
     prisma.candidate.count({ where: season ? { seasonId: season.id } : undefined }),
     prisma.transaction.findMany({
       where: { status: "paid", ...(phase ? { phaseId: phase.id } : {}) },
@@ -30,6 +30,7 @@ export default async function AdminDashboardPage() {
         votesCount: true,
       },
     }),
+    prisma.payoutRequest.count({ where: { status: "pending" } }),
   ]);
 
   const phaseVotes = paidTx.reduce((sum, t) => sum + t.votesCount, 0);
@@ -41,6 +42,16 @@ export default async function AdminDashboardPage() {
         {season?.title ?? "Pas de saison"} ·{" "}
         {phase ? `Phase ${phase.number}` : "Aucune phase"}
       </p>
+
+      {pendingRequests > 0 ? (
+        <div className="admin-card" style={{ marginTop: "1.25rem" }}>
+          <p>
+            <strong>{pendingRequests}</strong> demande
+            {pendingRequests > 1 ? "s" : ""} de retrait en attente.{" "}
+            <a href="/admin/versements">Voir Versements</a>
+          </p>
+        </div>
+      ) : null}
 
       <div className="stats-grid" style={{ marginTop: "1.5rem" }}>
         <div className="stat-card">
@@ -66,6 +77,10 @@ export default async function AdminDashboardPage() {
         <div className="stat-card">
           <span className="muted">Part orga</span>
           <strong>{formatXaf(totals._sum.adminShareXaf ?? 0)}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="muted">Retraits en attente</span>
+          <strong>{pendingRequests}</strong>
         </div>
       </div>
     </main>

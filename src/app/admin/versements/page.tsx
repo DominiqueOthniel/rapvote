@@ -23,7 +23,34 @@ function revalidatePayoutViews() {
   revalidatePath("/admin/versements");
   revalidatePath("/admin/paiements");
   revalidatePath("/admin/candidats");
+  revalidatePath("/admin");
   revalidatePath("/candidat");
+}
+
+async function handlePayoutRequest(formData: FormData) {
+  "use server";
+  const admin = await getAdminSession();
+  if (!admin) redirect("/admin/login");
+
+  const requestId = String(formData.get("requestId") ?? "");
+  const nextStatus = String(formData.get("status") ?? "");
+  const adminNote = String(formData.get("adminNote") ?? "").trim().slice(0, 400);
+
+  if (!requestId) return;
+  if (nextStatus !== "approved" && nextStatus !== "rejected" && nextStatus !== "paid") {
+    return;
+  }
+
+  await prisma.payoutRequest.update({
+    where: { id: requestId },
+    data: {
+      status: nextStatus,
+      adminNote: adminNote || null,
+      handledAt: new Date(),
+    },
+  });
+
+  revalidatePayoutViews();
 }
 
 async function createPayout(formData: FormData) {
@@ -204,6 +231,13 @@ export default async function AdminVersementsPage() {
     take: 50,
   });
 
+  const payoutRequests = await prisma.payoutRequest.findMany({
+    include: { candidate: true },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 50,
+  });
+  const pendingRequests = payoutRequests.filter((r) => r.status === "pending");
+
   const configured = isNotchPayConfigured();
   const options = candidates.map((c) => ({
     id: c.id,
@@ -218,6 +252,83 @@ export default async function AdminVersementsPage() {
       <p className="muted">
         Envoie les gains artistes via Notch Pay (Mobile Money MTN / Orange).
       </p>
+
+      <div className="admin-card" style={{ marginTop: "1.25rem" }}>
+        <h2 className="admin-form-title">
+          Demandes artistes
+          {pendingRequests.length > 0
+            ? ` · ${pendingRequests.length} en attente`
+            : ""}
+        </h2>
+        {payoutRequests.length === 0 ? (
+          <p className="muted">Aucune demande de retrait pour le moment.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Artiste</th>
+                  <th>Montant</th>
+                  <th>Téléphone</th>
+                  <th>Message</th>
+                  <th>Statut</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {payoutRequests.map((req) => (
+                  <tr key={req.id}>
+                    <td>
+                      {new Date(req.createdAt).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </td>
+                    <td>{req.candidate.stageName}</td>
+                    <td>{formatXaf(req.amountXaf)}</td>
+                    <td>{req.phone ?? req.candidate.phone ?? "—"}</td>
+                    <td>
+                      {req.message || "—"}
+                      {req.adminNote ? (
+                        <div className="muted">Note : {req.adminNote}</div>
+                      ) : null}
+                    </td>
+                    <td>{req.status}</td>
+                    <td>
+                      {req.status === "pending" ? (
+                        <div className="phase-vote-actions">
+                          <form action={handlePayoutRequest}>
+                            <input type="hidden" name="requestId" value={req.id} />
+                            <input type="hidden" name="status" value="approved" />
+                            <button className="btn-ghost" type="submit">
+                              Vu / approuvé
+                            </button>
+                          </form>
+                          <form action={handlePayoutRequest}>
+                            <input type="hidden" name="requestId" value={req.id} />
+                            <input type="hidden" name="status" value="paid" />
+                            <button className="btn-ghost" type="submit">
+                              Marquer payé
+                            </button>
+                          </form>
+                          <form action={handlePayoutRequest}>
+                            <input type="hidden" name="requestId" value={req.id} />
+                            <input type="hidden" name="status" value="rejected" />
+                            <button className="btn-ghost" type="submit">
+                              Refuser
+                            </button>
+                          </form>
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {!configured ? (
         <div className="admin-card" style={{ marginTop: "1.25rem" }}>
