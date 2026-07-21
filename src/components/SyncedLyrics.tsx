@@ -10,39 +10,7 @@ type LyricLine = {
 
 const LRC_LINE = /^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/;
 
-function isSectionBreak(text: string) {
-  const t = text.trim().toLowerCase();
-  if (!t) return true;
-  return (
-    /^(couplet|refrain|hook|outro|intro|pont|bridge|chorus|verse)\b/.test(t) ||
-    /^\[.+\]$/.test(t) ||
-    /^\(.+\)$/.test(t)
-  );
-}
-
-/** Poids d'une ligne: plus de mots / syllabes ≈ plus de temps de flow. */
-function lineWeight(text: string): number {
-  const trimmed = text.trim();
-  if (!trimmed) return 0.45;
-  if (isSectionBreak(trimmed) && trimmed.length < 28) return 0.55;
-
-  const words = trimmed.split(/\s+/).filter(Boolean);
-  const letters = trimmed.replace(/[^a-zA-ZÀ-ÿ0-9']/g, "").length;
-  // Approx syllabes: groupes de voyelles.
-  const syllables = Math.max(
-    1,
-    (trimmed.match(/[aeiouyàâäéèêëïîôùûü]+/gi) ?? []).length,
-  );
-
-  const byWords = words.length * 0.48;
-  const bySyllables = syllables * 0.28;
-  const byLetters = letters * 0.028;
-  // Hooks courts un peu plus longs, punchlines longues un peu compressées.
-  const raw = byWords * 0.45 + bySyllables * 0.4 + byLetters * 0.15;
-  return Math.min(4.2, Math.max(0.7, raw));
-}
-
-function parseLyrics(raw: string, duration: number): LyricLine[] {
+function parseTimedLyrics(raw: string, duration: number): LyricLine[] | null {
   const rows = raw
     .replace(/\r\n/g, "\n")
     .split("\n")
@@ -60,19 +28,23 @@ function parseLyrics(raw: string, duration: number): LyricLine[] {
     timed.push({ start, text: text || " " });
   }
 
-  if (timed.length >= 2) {
-    const sorted = timed.sort((a, b) => a.start - b.start);
-    return sorted.map((line, i) => ({
-      text: line.text,
-      start: line.start,
-      end:
-        i < sorted.length - 1
-          ? sorted[i + 1].start
-          : Math.max(line.start + 2, duration || line.start + 2),
-    }));
-  }
+  if (timed.length < 2) return null;
 
-  const plain = rows
+  const sorted = timed.sort((a, b) => a.start - b.start);
+  return sorted.map((line, i) => ({
+    text: line.text,
+    start: line.start,
+    end:
+      i < sorted.length - 1
+        ? sorted[i + 1].start
+        : Math.max(line.start + 2, duration || line.start + 2),
+  }));
+}
+
+function parsePlainLyrics(raw: string): string[] {
+  return raw
+    .replace(/\r\n/g, "\n")
+    .split("\n")
     .map((line) => line.replace(LRC_LINE, "$4").trimEnd())
     .filter((line, i, arr) => {
       if (line.trim().length > 0) return true;
@@ -80,47 +52,6 @@ function parseLyrics(raw: string, duration: number): LyricLine[] {
       const next = arr[i + 1]?.trim();
       return Boolean(prev || next);
     });
-
-  if (plain.length === 0) return [];
-
-  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
-  if (safeDuration <= 0) {
-    return plain.map((text) => ({ text: text || " ", start: 0, end: 0 }));
-  }
-
-  // Intro / outro plus réalistes pour du rap (beat avant le flow).
-  const intro = Math.min(
-    Math.max(safeDuration * 0.11, 5),
-    Math.min(22, safeDuration * 0.22),
-  );
-  const outro = Math.min(
-    Math.max(safeDuration * 0.06, 3),
-    Math.min(14, safeDuration * 0.12),
-  );
-  const usable = Math.max(safeDuration - intro - outro, safeDuration * 0.62);
-
-  const weights = plain.map((text) => lineWeight(text));
-  const totalWeight = weights.reduce((sum, w) => sum + w, 0) || 1;
-
-  let cursor = intro;
-  const lines: LyricLine[] = plain.map((text, index) => {
-    const span = (weights[index] / totalWeight) * usable;
-    const start = cursor;
-    const end = cursor + span;
-    cursor = end;
-    return { text: text || " ", start, end };
-  });
-
-  // Recale pour que la dernière ligne finisse pile avant l'outro.
-  const last = lines[lines.length - 1];
-  if (last) {
-    const targetEnd = safeDuration - outro;
-    if (last.end < targetEnd - 0.5) {
-      last.end = targetEnd;
-    }
-  }
-
-  return lines;
 }
 
 function activeIndex(lines: LyricLine[], currentTime: number) {
@@ -156,9 +87,13 @@ export function SyncedLyrics({
   const [follow, setFollow] = useState(true);
   const [smoothTime, setSmoothTime] = useState(currentTime);
 
-  const lines = useMemo(
-    () => parseLyrics(lyrics, duration),
+  const timedLines = useMemo(
+    () => parseTimedLyrics(lyrics, duration),
     [lyrics, duration],
+  );
+  const plainLines = useMemo(
+    () => (timedLines ? [] : parsePlainLyrics(lyrics)),
+    [lyrics, timedLines],
   );
 
   useEffect(() => {
@@ -166,9 +101,8 @@ export function SyncedLyrics({
     if (!isPlaying) setSmoothTime(currentTime);
   }, [currentTime, isPlaying]);
 
-  // Horloge fluide entre les timeupdate du <audio> (~4 Hz).
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !timedLines) return;
     let raf = 0;
     const tick = () => {
       const { t, wall } = clockRef.current;
@@ -178,11 +112,12 @@ export function SyncedLyrics({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying]);
+  }, [isPlaying, timedLines]);
 
   const time = isPlaying ? smoothTime : currentTime;
-  const current = activeIndex(lines, time);
-  const currentLine = current >= 0 ? lines[current] : null;
+  const current = timedLines ? activeIndex(timedLines, time) : -1;
+  const currentLine =
+    timedLines && current >= 0 ? timedLines[current] : null;
   const lineProgress =
     currentLine && currentLine.end > currentLine.start
       ? Math.min(
@@ -196,7 +131,7 @@ export function SyncedLyrics({
       : 0;
 
   useEffect(() => {
-    if (!follow || current < 0) return;
+    if (!timedLines || !follow || current < 0) return;
     const node = lineRefs.current[current];
     const scroller = scrollerRef.current;
     if (!node || !scroller) return;
@@ -207,10 +142,10 @@ export function SyncedLyrics({
       top: Math.max(0, target),
       behavior: isPlaying ? "smooth" : "auto",
     });
-  }, [current, follow, isPlaying]);
+  }, [current, follow, isPlaying, timedLines]);
 
   function onUserScroll() {
-    if (!follow) return;
+    if (!timedLines || !follow) return;
     userPausedFollow.current = true;
     setFollow(false);
     if (pauseTimer.current) window.clearTimeout(pauseTimer.current);
@@ -220,63 +155,80 @@ export function SyncedLyrics({
     }, 4000);
   }
 
-  if (lines.length === 0) {
+  if (timedLines && timedLines.length > 0) {
+    return (
+      <div className="synced-lyrics">
+        <div
+          ref={scrollerRef}
+          className="synced-lyrics-scroll"
+          tabIndex={0}
+          onScroll={onUserScroll}
+          onWheel={onUserScroll}
+          onTouchMove={onUserScroll}
+        >
+          <div className="synced-lyrics-spacer" aria-hidden="true" />
+          {timedLines.map((line, index) => {
+            const state =
+              index === current
+                ? "is-current"
+                : index < current
+                  ? "is-past"
+                  : "is-next";
+            return (
+              <button
+                key={`${line.start}-${index}`}
+                type="button"
+                ref={(el) => {
+                  lineRefs.current[index] = el;
+                }}
+                className={`synced-lyrics-line ${state}`}
+                style={
+                  index === current
+                    ? ({
+                        "--line-progress": String(lineProgress),
+                      } as CSSProperties)
+                    : undefined
+                }
+                onClick={() => onSeek?.(line.start)}
+              >
+                {line.text.trim() ? line.text : " "}
+              </button>
+            );
+          })}
+          <div className="synced-lyrics-spacer" aria-hidden="true" />
+        </div>
+        {!follow ? (
+          <button
+            type="button"
+            className="synced-lyrics-follow"
+            onClick={() => {
+              setFollow(true);
+              userPausedFollow.current = false;
+            }}
+          >
+            Suivre
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (plainLines.length === 0) {
     return <p className="muted">Pas de lyrics.</p>;
   }
 
   return (
-    <div className="synced-lyrics">
-      <div
-        ref={scrollerRef}
-        className="synced-lyrics-scroll"
-        tabIndex={0}
-        onScroll={onUserScroll}
-        onWheel={onUserScroll}
-        onTouchMove={onUserScroll}
-      >
-        <div className="synced-lyrics-spacer" aria-hidden="true" />
-        {lines.map((line, index) => {
-          const state =
-            index === current
-              ? "is-current"
-              : index < current
-                ? "is-past"
-                : "is-next";
-          return (
-            <button
-              key={`${line.start}-${index}`}
-              type="button"
-              ref={(el) => {
-                lineRefs.current[index] = el;
-              }}
-              className={`synced-lyrics-line ${state}`}
-              style={
-                index === current
-                  ? ({
-                      "--line-progress": String(lineProgress),
-                    } as CSSProperties)
-                  : undefined
-              }
-              onClick={() => onSeek?.(line.start)}
-            >
-              {line.text.trim() ? line.text : " "}
-            </button>
-          );
-        })}
-        <div className="synced-lyrics-spacer" aria-hidden="true" />
+    <div className="synced-lyrics synced-lyrics-plain">
+      <p className="muted synced-lyrics-plain-note">
+        Paroles non synchronisées
+      </p>
+      <div className="synced-lyrics-scroll" tabIndex={0}>
+        {plainLines.map((line, index) => (
+          <p key={`plain-${index}`} className="synced-lyrics-line is-plain">
+            {line.trim() ? line : " "}
+          </p>
+        ))}
       </div>
-      {!follow ? (
-        <button
-          type="button"
-          className="synced-lyrics-follow"
-          onClick={() => {
-            setFollow(true);
-            userPausedFollow.current = false;
-          }}
-        >
-          Suivre
-        </button>
-      ) : null}
     </div>
   );
 }

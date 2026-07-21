@@ -9,6 +9,11 @@ import {
   useFanPlayer,
   type FanPlayerTrack,
 } from "@/components/FanPlayerProvider";
+import {
+  TodayBuzzBanner,
+  todayTrackBuzz,
+  useTodayBuzz,
+} from "@/components/TodayBuzz";
 import { formatVotes } from "@/lib/money";
 
 export type SonsFeedItem = {
@@ -37,6 +42,7 @@ type Props = {
   tracks: SonsFeedItem[];
   phases: SonsPhaseOption[];
   fanLoggedIn: boolean;
+  activePhaseId?: string | null;
 };
 
 function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
@@ -53,9 +59,14 @@ function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
   };
 }
 
-export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
+export function SonsFeed({
+  tracks,
+  phases,
+  fanLoggedIn,
+  activePhaseId = null,
+}: Props) {
   const router = useRouter();
-  const { track, isPlaying, playTrack, toggle } = useFanPlayer();
+  const { track, isPlaying, playTrack, toggle, playCounts } = useFanPlayer();
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
   const [likes, setLikes] = useState(() =>
     Object.fromEntries(tracks.map((t) => [t.id, t.likeCount])),
@@ -72,6 +83,17 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
   }, [tracks, phaseFilter]);
 
   const queue = useMemo(() => visible.map(toPlayerTrack), [visible]);
+  const buzzPhaseId =
+    phaseFilter === "all" ? activePhaseId : phaseFilter || activePhaseId;
+  const buzzTrackIds = useMemo(
+    () =>
+      (buzzPhaseId
+        ? tracks.filter((t) => t.phaseId === buzzPhaseId)
+        : tracks
+      ).map((t) => t.id),
+    [tracks, buzzPhaseId],
+  );
+  const buzz = useTodayBuzz(buzzPhaseId, buzzTrackIds);
 
   function onRowPlay(item: SonsFeedItem) {
     if (track?.id === item.id) {
@@ -114,6 +136,8 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
 
   return (
     <div className="sons-feed">
+      <TodayBuzzBanner buzz={buzz} />
+
       {phases.length > 0 ? (
         <div className="sons-phase-filters" role="tablist" aria-label="Phases">
           <button
@@ -165,6 +189,8 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
               const playing = active && isPlaying;
               const title =
                 item.title.trim() || `Son · ${item.candidate.stageName}`;
+              const plays = playCounts[item.id] ?? item.playCount;
+              const dayBuzz = todayTrackBuzz(buzz.byTrack, item.id);
 
               return (
                 <li key={item.id}>
@@ -214,11 +240,8 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
                           >
                             {title}
                           </button>
-                          <span
-                            className="sons-plays-beside"
-                            title="Écoutes"
-                          >
-                            {formatVotes(item.playCount)}
+                          <span className="sons-plays-beside" title="Écoutes">
+                            {formatVotes(plays)}
                           </span>
                         </div>
                         <Link
@@ -230,11 +253,19 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
                         <span className="muted sons-phase">
                           {item.phaseLabel}
                         </span>
+                        {dayBuzz.plays > 0 || dayBuzz.likes > 0 ? (
+                          <span className="sons-day-buzz">
+                            +{formatVotes(dayBuzz.plays)} éc. auj.
+                            {dayBuzz.likes > 0
+                              ? ` · +${formatVotes(dayBuzz.likes)} likes`
+                              : ""}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
                     <span className="sons-col-plays muted">
-                      {formatVotes(item.playCount)}
+                      {formatVotes(plays)}
                     </span>
 
                     <div className="sons-col-like">

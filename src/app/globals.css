@@ -3300,6 +3300,22 @@ select:focus-visible {
   color: rgba(235, 228, 216, 0.28);
 }
 
+.synced-lyrics-plain-note {
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+}
+
+.synced-lyrics-line.is-plain {
+  display: block;
+  margin: 0;
+  padding: 0.35rem 0.2rem;
+  opacity: 0.88;
+  color: rgba(244, 239, 230, 0.82);
+  font-size: inherit;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .synced-lyrics-follow {
   position: absolute;
   left: 50%;
@@ -3548,6 +3564,33 @@ select:focus-visible {
   font-size: 0.78rem;
 }
 
+.lyrics-sync-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-right: auto;
+}
+
+.lyrics-sync-modes .btn-ghost.is-active {
+  color: var(--ink);
+  background: var(--lime);
+}
+
+.lyrics-tempo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.lyrics-tempo-grid .field {
+  margin: 0;
+}
+
+.lyrics-tempo-grid input,
+.lyrics-tempo-grid select {
+  width: 100%;
+}
+
 /* Competition scoreboard on artist profile */
 .comp-scoreboard {
   margin: 1.5rem 0 2rem;
@@ -3740,3 +3783,353 @@ select:focus-visible {
     animation: none;
   }
 }
+
+/* Fan engagement: streak, buzz, library */
+.fan-streak-card {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.05rem 1.1rem;
+  border: 1px solid rgba(214, 255, 63, 0.22);
+  background:
+    linear-gradient(135deg, rgba(214, 255, 63, 0.08), transparent 55%),
+    rgba(12, 11, 10, 0.55);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fan-streak-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fan-streak-count {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.fan-streak-hint {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.fan-streak-side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.fan-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(214, 255, 63, 0.45);
+  color: var(--lime);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fan-streak-free {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.fan-streak-meter {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.fan-streak-pip {
+  height: 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fan-streak-pip.is-on {
+  background: var(--lime);
+}
+
+.fan-streak-flash {
+  margin: 0;
+  color: var(--lime);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.today-buzz-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.today-buzz-pulse {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #ff5a5a;
+  box-shadow: 0 0 0 0 rgba(255, 90, 90, 0.55);
+  animation: buzzPulse 1.6s ease-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes buzzPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 90, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 0.55rem rgba(255, 90, 90, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 90, 0);
+  }
+}
+
+.today-buzz-label {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 230, 0.55);
+}
+
+.today-buzz-stats {
+  margin: 0.15rem 0 0;
+  font-size: 0.95rem;
+}
+
+.sons-day-buzz {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--lime);
+  font-weight: 650;
+}
+
+.fan-library-panel {
+  max-height: min(52vh, 26rem);
+}
+
+.fan-library-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.fan-library-tabs .btn-ghost.is-active {
+  color: var(--ink);
+  background: var(--lime);
+}
+
+.fan-library-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  overflow: auto;
+  max-height: min(38vh, 18rem);
+}
+
+.fan-library-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.fan-library-play {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.25rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fan-library-cover,
+.fan-library-cover-fallback {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.fan-library-cover-fallback {
+  display: grid;
+  place-items: center;
+  background: rgba(214, 255, 63, 0.12);
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.fan-library-meta {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.fan-library-meta strong,
+.fan-library-meta .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vote-free-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(214, 255, 63, 0.28);
+  background: rgba(214, 255, 63, 0.07);
+}
+
+.vote-free-box p {
+  margin: 0.2rem 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-buzz-pulse {
+    animation: none;
+  }
+}
+
+/* Artist dashboard: stats + share */
+.artist-stats-panel,
+.artist-share-kit {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.artist-stats-totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+@media (min-width: 640px) {
+  .artist-stats-totals {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.artist-stats-totals > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.artist-stats-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.artist-stats-tab {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(244, 239, 230, 0.7);
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.artist-stats-tab.is-active {
+  border-color: var(--metric, var(--lime));
+  color: var(--ink);
+  background: var(--metric, var(--lime));
+  font-weight: 700;
+}
+
+.artist-stats-chart-wrap {
+  overflow-x: auto;
+}
+
+.artist-stats-chart {
+  width: 100%;
+  min-width: 280px;
+  height: auto;
+  display: block;
+}
+
+.artist-stats-grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.artist-stats-axis {
+  fill: rgba(244, 239, 230, 0.55);
+  font-size: 11px;
+}
+
+.artist-stats-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.45rem;
+}
+
+.artist-stats-legend li {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.86rem;
+}
+
+.artist-share-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.artist-share-formats .btn-ghost.is-active {
+  color: var(--ink);
+  background: var(--lime);
+}
+
+.artist-share-preview {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b0908;
+  overflow: hidden;
+}
+
+.artist-share-preview.is-square {
+  max-width: 22rem;
+}
+
+.artist-share-preview.is-wide {
+  max-width: 100%;
+}
+
+.artist-share-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.artist-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+

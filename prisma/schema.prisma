@@ -220,30 +220,76 @@ model PayoutRequest {
 }
 
 model Fan {
-  id        String         @id @default(cuid())
-  name      String
-  phone     String         @unique
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  comments  TrackComment[]
-  likes     TrackLike[]
+  id                String             @id @default(cuid())
+  name              String
+  phone             String             @unique
+  streakCount       Int                @default(0)
+  lastListenDay     String?
+  freeVotes         Int                @default(0)
+  streakBadgeEarned Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  comments          TrackComment[]
+  likes             TrackLike[]
+  playlistItems     FanPlaylistItem[]
+  listenHistory     FanListenHistory[]
+  playEvents        TrackPlayEvent[]
+}
+
+model FanPlaylistItem {
+  id        String     @id @default(cuid())
+  fanId     String
+  trackId   String
+  createdAt DateTime   @default(now())
+  fan       Fan        @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  track     PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([fanId, trackId])
+  @@index([fanId, createdAt])
+}
+
+model FanListenHistory {
+  id         String     @id @default(cuid())
+  fanId      String
+  trackId    String
+  listenedAt DateTime   @default(now())
+  fan        Fan        @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  track      PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([fanId, trackId])
+  @@index([fanId, listenedAt])
+}
+
+model TrackPlayEvent {
+  id        String     @id @default(cuid())
+  trackId   String
+  fanId     String?
+  createdAt DateTime   @default(now())
+  track     PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  fan       Fan?       @relation(fields: [fanId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([trackId, createdAt])
 }
 
 model PhaseTrack {
-  id            String         @id @default(cuid())
+  id            String             @id @default(cuid())
   candidateId   String
   phaseId       String
   title         String?
   audioUrl      String
   lyrics        String?
-  playCount     Int            @default(0)
-  downloadCount Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  candidate     Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  phase         Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  playCount     Int                @default(0)
+  downloadCount Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  candidate     Candidate          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  phase         Phase              @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   comments      TrackComment[]
   likes         TrackLike[]
+  playlistItems FanPlaylistItem[]
+  listenHistory FanListenHistory[]
+  playEvents    TrackPlayEvent[]
 
   @@unique([candidateId, phaseId])
 }

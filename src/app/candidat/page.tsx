@@ -9,7 +9,6 @@ import {
 } from "@/lib/auth";
 import { getActiveSeason, getCurrentPhase, uniqueCandidateSlug } from "@/lib/competition";
 import { prisma } from "@/lib/db";
-import { formatJuryNote } from "@/lib/scoring";
 import { formatVotes, formatXaf, normalizeCameroonPhone } from "@/lib/money";
 import {
   deleteCandidatePhotoFile,
@@ -20,6 +19,9 @@ import { COMPETITION_BRAND } from "@/lib/parcours";
 import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
 import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
 import { WithdrawalRequestForm } from "@/components/WithdrawalRequestForm";
+import { ArtistStatsPanel } from "@/components/ArtistStatsPanel";
+import { ArtistShareKit } from "@/components/ArtistShareKit";
+import { getArtistPhaseStats } from "@/lib/artist-stats";
 
 export const dynamic = "force-dynamic";
 
@@ -244,6 +246,16 @@ export default async function CandidateDashboardPage() {
     },
   });
 
+  const artistStats = season
+    ? await getArtistPhaseStats(candidate.id, season.id)
+    : {
+        totalPlays: 0,
+        totalLikes: 0,
+        totalVotes: 0,
+        totalRevenueXaf: 0,
+        phases: [],
+      };
+
   return (
     <main>
       <h1 className="page-title">Mon espace</h1>
@@ -291,6 +303,13 @@ export default async function CandidateDashboardPage() {
             </Link>
           </p>
         </section>
+
+        <ArtistStatsPanel stats={artistStats} />
+
+        <ArtistShareKit
+          slug={candidate.slug}
+          stageName={candidate.stageName}
+        />
 
         <WithdrawalRequestForm
           balanceDue={balanceDue}

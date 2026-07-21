@@ -4,9 +4,7 @@ import {
   formatScore,
   juryPoints,
   phaseFinalScore,
-  publicVotesAffectScore,
   votePoints,
-  weightsForPhase,
 } from "@/lib/scoring";
 import { formatVotes } from "@/lib/money";
 
@@ -43,10 +41,6 @@ export function CompetitionScoreboard({
 
   const score = current;
   const juryPending = Boolean(score && score.juryRatedCount === 0);
-  const votesCountInScore = score
-    ? publicVotesAffectScore(score.phaseNumber)
-    : false;
-  const weights = score ? weightsForPhase(score.phaseNumber) : null;
   const ringValue = score
     ? juryPending
       ? 0
@@ -109,11 +103,6 @@ export function CompetitionScoreboard({
           <article className="comp-score-card">
             <p className="muted">Votes cumulés</p>
             <strong>{formatVotes(score.votesCount)}</strong>
-            <span className="comp-score-sub">
-              {votesCountInScore
-                ? `Part score ${formatScore(score.votePart)} · ${Math.round((weights?.voteWeight ?? 0) * 100)}%`
-                : "Pas encore dans le score (avant ép. 9)"}
-            </span>
           </article>
           <article className="comp-score-card">
             <p className="muted">Note jury</p>
@@ -122,9 +111,6 @@ export function CompetitionScoreboard({
             </strong>
             <span className="comp-score-sub">
               {score.juryRatedCount}/{score.juryExpected} jurés
-              {!juryPending
-                ? ` · part ${formatScore(score.juryPart)}`
-                : ""}
             </span>
           </article>
           <article className="comp-score-card">
@@ -132,11 +118,6 @@ export function CompetitionScoreboard({
             <strong>
               {juryPending ? "—" : formatScore(score.finalScore)}
             </strong>
-            <span className="comp-score-sub">
-              {votesCountInScore
-                ? "Jury 85% · Public 15%"
-                : "100% jury sur cette phase"}
-            </span>
           </article>
         </div>
       ) : null}

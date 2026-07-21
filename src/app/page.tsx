@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FanLoginForm } from "@/components/FanLoginForm";
 import { FanLogoutButton } from "@/components/FanLogoutButton";
+import { FanStreakCard } from "@/components/FanStreakCard";
 import { SonsFeed } from "@/components/SonsFeed";
 import { getFanSession } from "@/lib/auth";
 import {
@@ -8,6 +9,7 @@ import {
   getCurrentPhase,
   getSeasonTracksFeed,
 } from "@/lib/competition";
+import { getFanEngagement } from "@/lib/fan-engagement";
 import { getEpisodeByNumber } from "@/lib/parcours";
 
 export const dynamic = "force-dynamic";
@@ -108,6 +110,7 @@ export default async function HomePage() {
   }
 
   const rawTracks = await getSeasonTracksFeed(season.id, fan.id);
+  const engagement = await getFanEngagement(fan.id);
   const phasesWithTracks = new Set(rawTracks.map((t) => t.phaseId));
   const phaseOptions = season.phases
     .filter((p) => phasesWithTracks.has(p.id))
@@ -149,7 +152,23 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <SonsFeed tracks={tracks} phases={phaseOptions} fanLoggedIn />
+      {engagement ? (
+        <FanStreakCard
+          initial={{
+            streakCount: engagement.streakCount,
+            freeVotes: engagement.freeVotes,
+            streakBadgeEarned: engagement.streakBadgeEarned,
+            daysToReward: engagement.daysToReward,
+          }}
+        />
+      ) : null}
+
+      <SonsFeed
+        tracks={tracks}
+        phases={phaseOptions}
+        fanLoggedIn
+        activePhaseId={currentPhase?.id ?? null}
+      />
     </main>
   );
 }

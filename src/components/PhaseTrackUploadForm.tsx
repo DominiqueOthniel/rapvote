@@ -159,7 +159,9 @@ export function PhaseTrackUploadForm({
           onChange={(e) => setLyrics(e.target.value)}
           rows={8}
           maxLength={12000}
-          placeholder={"Colle ici les paroles...\n\nCouplet 1\n...\nRefrain"}
+          placeholder={
+            "Colle ici les paroles (une ligne = une phrase)...\n\nCouplet 1\n...\nRefrain\n\nPuis utilise Caler les lyrics avec le BPM."
+          }
         />
       </label>
 

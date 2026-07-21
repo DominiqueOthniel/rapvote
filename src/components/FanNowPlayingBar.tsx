@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
+import { FanLibraryPanel } from "@/components/FanLibraryPanel";
 import { FanPlayerComments } from "@/components/FanPlayerComments";
 import { useFanPlayer } from "@/components/FanPlayerProvider";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 
-type Panel = "lyrics" | "comments" | null;
+type Panel = "lyrics" | "comments" | "library" | null;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -28,13 +29,33 @@ export function FanNowPlayingBar() {
     playPrev,
   } = useFanPlayer();
   const [panel, setPanel] = useState<Panel>(null);
+  const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   useEffect(() => {
     setPanel(null);
+    setSaved(false);
+  }, [track?.id]);
+
+  useEffect(() => {
+    if (!track?.id) return;
+    let cancelled = false;
+    void fetch("/api/fan/playlist")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data.ok) return;
+        const ids = (data.items as { id: string }[]).map((i) => i.id);
+        setSaved(ids.includes(track.id));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [track?.id]);
 
   if (!track) return null;
 
+  const trackId = track.id;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const hasLyrics = Boolean(track.lyrics?.trim());
   const panelOpen = panel !== null;
@@ -43,12 +64,34 @@ export function FanNowPlayingBar() {
     setPanel((current) => (current === next ? null : next));
   }
 
+  async function toggleSave() {
+    if (saveBusy) return;
+    setSaveBusy(true);
+    try {
+      const res = await fetch("/api/fan/playlist", {
+        method: saved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSaved(Boolean(data.saved));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
   return (
     <div
       className={`fan-now-playing${panelOpen ? " has-panel" : ""}`}
       role="region"
       aria-label="Lecteur"
     >
+      {panel === "library" ? <FanLibraryPanel onClose={() => setPanel(null)} /> : null}
+
       {panel === "lyrics" && hasLyrics ? (
         <div className="fan-now-panel">
           <div className="fan-now-panel-head">
@@ -118,6 +161,26 @@ export function FanNowPlayingBar() {
         </div>
 
         <div className="fan-now-controls">
+          <button
+            type="button"
+            className={`fan-now-btn${panel === "library" ? " is-on" : ""}`}
+            onClick={() => togglePanel("library")}
+            aria-pressed={panel === "library"}
+            aria-label="Ma bibliothèque"
+            title="Mes sons"
+          >
+            ≡
+          </button>
+          <button
+            type="button"
+            className={`fan-now-btn${saved ? " is-on" : ""}`}
+            onClick={() => void toggleSave()}
+            disabled={saveBusy}
+            aria-label={saved ? "Retirer de Mes sons" : "Ajouter à Mes sons"}
+            title={saved ? "Dans Mes sons" : "Ajouter à Mes sons"}
+          >
+            {saved ? "★" : "☆"}
+          </button>
           {hasLyrics ? (
             <button
               type="button"

@@ -29,6 +29,7 @@ type FanPlayerContextValue = {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  playCounts: Record<string, number>;
   playTrack: (track: FanPlayerTrack, queue?: FanPlayerTrack[]) => void;
   toggle: () => void;
   pause: () => void;
@@ -38,6 +39,12 @@ type FanPlayerContextValue = {
 };
 
 const FanPlayerContext = createContext<FanPlayerContextValue | null>(null);
+
+/** Compte une écoute après 30s réelles, ou 45% du son (le plus bas des deux). */
+function listenThreshold(duration: number) {
+  if (!Number.isFinite(duration) || duration <= 0) return 30;
+  return Math.min(30, Math.max(12, duration * 0.45));
+}
 
 export function useFanPlayer() {
   const ctx = useContext(FanPlayerContext);
@@ -51,22 +58,48 @@ export function useFanPlayerOptional() {
   return useContext(FanPlayerContext);
 }
 
-async function registerPlayCount(trackId: string) {
+async function postPlayCount(trackId: string): Promise<{
+  playCount: number;
+  engagement?: {
+    streakCount: number;
+    freeVotes: number;
+    streakBadgeEarned: boolean;
+    daysToReward: number;
+    rewardedNow?: boolean;
+  } | null;
+} | null> {
   const key = `ftc-play-${trackId}`;
   try {
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, "1");
+    if (sessionStorage.getItem(key)) return null;
   } catch {
     // ignore
   }
+
   try {
-    await fetch("/api/tracks/play", {
+    const res = await fetch("/api/tracks/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ trackId }),
     });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return null;
+    try {
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // ignore
+    }
+    if (data?.engagement) {
+      window.dispatchEvent(
+        new CustomEvent("ftc:fan-engagement", { detail: data.engagement }),
+      );
+    }
+    return {
+      playCount:
+        typeof data?.playCount === "number" ? data.playCount : 0,
+      engagement: data?.engagement ?? null,
+    };
   } catch {
-    // ignore
+    return null;
   }
 }
 
@@ -75,6 +108,7 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
   const listenedSeconds = useRef(0);
   const lastCurrentTime = useRef(0);
   const countedPlay = useRef(false);
+  const countingInFlight = useRef(false);
   const trackIdRef = useRef<string | null>(null);
 
   const [track, setTrack] = useState<FanPlayerTrack | null>(null);
@@ -82,12 +116,66 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playCounts, setPlayCounts] = useState<Record<string, number>>({});
 
   const resetListenStats = useCallback(() => {
     listenedSeconds.current = 0;
     lastCurrentTime.current = 0;
     countedPlay.current = false;
+    countingInFlight.current = false;
   }, []);
+
+  const tryCountPlay = useCallback(async () => {
+    const trackId = trackIdRef.current;
+    const audio = audioRef.current;
+    if (!trackId || countedPlay.current || countingInFlight.current) return;
+
+    const dur = audio?.duration ?? 0;
+    const threshold = listenThreshold(dur);
+    // Fin naturelle: compter si l'écoute réelle couvre l'essentiel du son
+    // (évite un comptage après un seek jusqu'à la fin).
+    const mostlyFinished =
+      Number.isFinite(dur) &&
+      dur > 0 &&
+      listenedSeconds.current >= Math.min(dur * 0.85, Math.max(threshold, dur - 1));
+
+    if (listenedSeconds.current < threshold && !mostlyFinished) return;
+
+    countedPlay.current = true;
+    countingInFlight.current = true;
+    const result = await postPlayCount(trackId);
+    countingInFlight.current = false;
+    if (result && typeof result.playCount === "number") {
+      setPlayCounts((prev) => ({ ...prev, [trackId]: result.playCount }));
+    } else {
+      // Échec API: on réessaie. Déjà compté en session: on laisse counted.
+      try {
+        if (!sessionStorage.getItem(`ftc-play-${trackId}`)) {
+          countedPlay.current = false;
+        }
+      } catch {
+        countedPlay.current = false;
+      }
+    }
+  }, []);
+
+  const accumulateListen = useCallback(
+    (audio: HTMLAudioElement) => {
+      const current = audio.currentTime;
+      const delta = current - lastCurrentTime.current;
+      // Ignore les gros sauts (seek lyrics / scrub).
+      if (delta > 0 && delta < 1.25) {
+        listenedSeconds.current += delta;
+      }
+      lastCurrentTime.current = current;
+
+      const dur = audio.duration;
+      if (Number.isFinite(dur) && dur > 0) setDuration(dur);
+      setCurrentTime(current);
+      void tryCountPlay();
+    },
+    [tryCountPlay],
+  );
 
   const playTrack = useCallback(
     (next: FanPlayerTrack, nextQueue?: FanPlayerTrack[]) => {
@@ -108,7 +196,10 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
       }
 
       void audio.play().then(
-        () => setIsPlaying(true),
+        () => {
+          lastCurrentTime.current = audio.currentTime;
+          setIsPlaying(true);
+        },
         () => setIsPlaying(false),
       );
     },
@@ -127,7 +218,10 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     if (!audio || !track) return;
     if (audio.paused) {
       void audio.play().then(
-        () => setIsPlaying(true),
+        () => {
+          lastCurrentTime.current = audio.currentTime;
+          setIsPlaying(true);
+        },
         () => setIsPlaying(false),
       );
     } else {
@@ -140,8 +234,8 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio || !Number.isFinite(time)) return;
     audio.currentTime = Math.max(0, time);
-    setCurrentTime(audio.currentTime);
     lastCurrentTime.current = audio.currentTime;
+    setCurrentTime(audio.currentTime);
   }, []);
 
   const playNext = useCallback(() => {
@@ -164,24 +258,7 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
 
     function onTimeUpdate() {
       if (!audio) return;
-      setCurrentTime(audio.currentTime);
-      const dur = audio.duration;
-      if (Number.isFinite(dur) && dur > 0) setDuration(dur);
-
-      if (!trackIdRef.current || countedPlay.current) return;
-      if (!Number.isFinite(dur) || dur <= 0) return;
-
-      const current = audio.currentTime;
-      const delta = current - lastCurrentTime.current;
-      if (delta > 0 && delta < 1.5) {
-        listenedSeconds.current += delta;
-      }
-      lastCurrentTime.current = current;
-
-      if (listenedSeconds.current >= dur * 0.5) {
-        countedPlay.current = true;
-        void registerPlayCount(trackIdRef.current);
-      }
+      accumulateListen(audio);
     }
 
     function onSeeked() {
@@ -192,9 +269,12 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     function onLoaded() {
       if (!audio) return;
       if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+      lastCurrentTime.current = audio.currentTime;
     }
 
     function onPlay() {
+      if (!audio) return;
+      lastCurrentTime.current = audio.currentTime;
       setIsPlaying(true);
     }
 
@@ -204,12 +284,15 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
 
     function onEnded() {
       setIsPlaying(false);
-      playNext();
+      void tryCountPlay().finally(() => {
+        playNext();
+      });
     }
 
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("seeked", onSeeked);
     audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("durationchange", onLoaded);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
@@ -218,26 +301,27 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("seeked", onSeeked);
       audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("durationchange", onLoaded);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [playNext]);
+  }, [accumulateListen, playNext, tryCountPlay]);
 
-  // Horloge haute fréquence pendant la lecture (sync lyrics plus serrée).
+  // Horloge fluide + accumulation fiable (timeupdate est irrégulier sur mobile).
   useEffect(() => {
     if (!isPlaying) return;
     let raf = 0;
     const tick = () => {
       const audio = audioRef.current;
       if (audio && !audio.paused) {
-        setCurrentTime(audio.currentTime);
+        accumulateListen(audio);
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying]);
+  }, [isPlaying, accumulateListen]);
 
   const value = useMemo(
     () => ({
@@ -246,6 +330,7 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
       isPlaying,
       currentTime,
       duration,
+      playCounts,
       playTrack,
       toggle,
       pause,
@@ -259,6 +344,7 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
       isPlaying,
       currentTime,
       duration,
+      playCounts,
       playTrack,
       toggle,
       pause,

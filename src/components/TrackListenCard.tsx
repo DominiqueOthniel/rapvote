@@ -43,7 +43,6 @@ export function TrackListenCard({
 }: Props) {
   const router = useRouter();
   const player = useFanPlayerOptional();
-  const [plays] = useState(initialPlays);
   const [downloads, setDownloads] = useState(initialDownloads);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(likedByFan);
@@ -55,6 +54,8 @@ export function TrackListenCard({
   const displayTitle = title.trim() || `Son · ${candidateName}`;
   const isActive = player?.track?.id === trackId;
   const isPlaying = Boolean(isActive && player?.isPlaying);
+  const livePlays = player?.playCounts[trackId];
+  const shownPlays = typeof livePlays === "number" ? livePlays : initialPlays;
 
   function onPlayClick() {
     if (!player) return;
@@ -176,7 +177,7 @@ export function TrackListenCard({
 
       <div className="track-stats-row">
         <span className="track-stat">
-          <strong>{formatVotes(plays)}</strong> écoutes
+          <strong>{formatVotes(shownPlays)}</strong> écoutes
         </span>
         <span className="track-stat">
           <strong>{formatVotes(downloads)}</strong> téléchargements
@@ -237,19 +238,13 @@ export function TrackListenCard({
             <div className="track-lyrics-head">
               <p className="track-listen-kicker">Lyrics</p>
             </div>
-            {isActive && player ? (
-              <SyncedLyrics
-                lyrics={lyrics!}
-                currentTime={player.currentTime}
-                duration={player.duration}
-                isPlaying={isPlaying}
-                onSeek={player.seek}
-              />
-            ) : (
-              <div className="track-lyrics-scroll" tabIndex={0}>
-                <pre className="track-lyrics-text">{lyrics}</pre>
-              </div>
-            )}
+            <SyncedLyrics
+              lyrics={lyrics!}
+              currentTime={isActive && player ? player.currentTime : 0}
+              duration={isActive && player ? player.duration : 0}
+              isPlaying={isPlaying}
+              onSeek={isActive && player ? player.seek : undefined}
+            />
           </div>
         ) : null}
       </div>

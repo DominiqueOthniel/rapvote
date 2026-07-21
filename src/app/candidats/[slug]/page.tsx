@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VoteForm } from "@/components/VoteForm";
 import { TrackComments } from "@/components/TrackComments";
@@ -27,6 +28,37 @@ import { formatVotes, formatXaf } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const candidate = await prisma.candidate.findUnique({
+    where: { slug },
+    select: { stageName: true, bio: true, city: true },
+  });
+  if (!candidate) return { title: "Candidat" };
+
+  const title = `${candidate.stageName} · vote ici`;
+  const description =
+    candidate.bio?.trim() ||
+    `Mon son est en ligne. Vote pour ${candidate.stageName}${
+      candidate.city ? ` (${candidate.city})` : ""
+    }.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 function phaseLabel(phase: {
   number: number;
@@ -224,6 +256,9 @@ export default async function CandidatePage({ params }: Props) {
           candidateName={candidate.stageName}
           phaseId={phase.id}
           packages={packages}
+          freeVotes={fan?.freeVotes ?? 0}
+          fanName={fan?.name}
+          fanPhone={fan?.phone}
         />
       ) : (
         <section className="vote-form">

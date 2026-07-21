@@ -20,20 +20,33 @@ type Props = {
   candidateName: string;
   phaseId: string;
   packages: VotePackage[];
+  freeVotes?: number;
+  fanName?: string | null;
+  fanPhone?: string | null;
 };
 
 type Mode = "pack" | "custom";
 
-export function VoteForm({ candidateId, candidateName, phaseId, packages }: Props) {
+export function VoteForm({
+  candidateId,
+  candidateName,
+  phaseId,
+  packages,
+  freeVotes = 0,
+  fanName = null,
+  fanPhone = null,
+}: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("pack");
   const [packageId, setPackageId] = useState(packages[0]?.id ?? "");
   const [customVotes, setCustomVotes] = useState("15");
-  const [voterName, setVoterName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [voterName, setVoterName] = useState(fanName ?? "");
+  const [phone, setPhone] = useState(fanPhone ?? "");
   const [operator, setOperator] = useState<"ORANGE" | "MTN">("ORANGE");
   const [loading, setLoading] = useState(false);
+  const [freeLoading, setFreeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [freeLeft, setFreeLeft] = useState(freeVotes);
 
   const customCount = Math.floor(Number(customVotes));
   const customPrice = useMemo(
@@ -118,12 +131,65 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
     }
   }
 
+  async function onFreeVote() {
+    setFreeLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/vote/free", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidateId, phaseId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Vote gratuit impossible");
+        setFreeLoading(false);
+        return;
+      }
+      if (typeof data.engagement?.freeVotes === "number") {
+        setFreeLeft(data.engagement.freeVotes);
+      } else {
+        setFreeLeft((n) => Math.max(0, n - 1));
+      }
+      if (data.engagement) {
+        window.dispatchEvent(
+          new CustomEvent("ftc:fan-engagement", { detail: data.engagement }),
+        );
+      }
+      router.refresh();
+    } catch {
+      setError("Connexion impossible. Réessaie.");
+    } finally {
+      setFreeLoading(false);
+    }
+  }
+
   return (
     <form className="vote-form" onSubmit={onSubmit}>
       <h2>Voter pour {candidateName}</h2>
       <p className="muted">
         Paiement via Notch Pay · 50% artiste · 50% organisation.
       </p>
+
+      {freeLeft > 0 ? (
+        <div className="vote-free-box">
+          <div>
+            <strong>Vote gratuit</strong>
+            <p className="muted">
+              Tu as {freeLeft} vote{freeLeft > 1 ? "s" : ""} offert
+              {freeLeft > 1 ? "s" : ""} (série d&apos;écoute).
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={freeLoading || loading}
+            onClick={() => void onFreeVote()}
+          >
+            {freeLoading ? "Envoi..." : "Offrir 1 vote gratuit"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="vote-mode-tabs">
         <button
