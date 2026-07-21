@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LyricsTapSync } from "@/components/LyricsTapSync";
 
 type Props = {
   phaseId: string;
   hasTrack: boolean;
+  audioUrl?: string | null;
   defaultTitle?: string | null;
   defaultLyrics?: string | null;
 };
@@ -13,6 +15,7 @@ type Props = {
 export function PhaseTrackUploadForm({
   phaseId,
   hasTrack,
+  audioUrl,
   defaultTitle,
   defaultLyrics,
 }: Props) {
@@ -159,6 +162,16 @@ export function PhaseTrackUploadForm({
           placeholder={"Colle ici les paroles...\n\nCouplet 1\n...\nRefrain"}
         />
       </label>
+
+      {hasTrack && audioUrl ? (
+        <LyricsTapSync
+          phaseId={phaseId}
+          audioUrl={audioUrl}
+          lyrics={lyrics}
+          onLyricsSaved={setLyrics}
+        />
+      ) : null}
+
       <label className="field">
         <span>Fichier audio {hasTrack ? "(optionnel pour remplacer)" : ""}</span>
         <input

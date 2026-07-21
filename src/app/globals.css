@@ -3456,3 +3456,287 @@ select:focus-visible {
     scroll-behavior: auto;
   }
 }
+
+/* Artist lyrics tap-to-sync */
+.lyrics-tap-sync {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.85rem;
+}
+
+.lyrics-tap-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.lyrics-tap-sync-status {
+  font-size: 0.84rem;
+}
+
+.lyrics-tap-panel {
+  border: 1px solid var(--line);
+  background: rgba(12, 11, 10, 0.55);
+  padding: 0.9rem 1rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lyrics-tap-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.lyrics-tap-panel-head strong {
+  margin-right: auto;
+}
+
+.lyrics-tap-help {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.lyrics-tap-current {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(214, 255, 63, 0.25);
+  background: rgba(214, 255, 63, 0.06);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.lyrics-tap-line {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.lyrics-tap-done {
+  margin: 0;
+  font-weight: 700;
+  color: var(--lime);
+}
+
+.lyrics-tap-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lyrics-tap-stamped {
+  margin: 0;
+  padding: 0.5rem 0 0 1.1rem;
+  max-height: 12rem;
+  overflow: auto;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.lyrics-tap-stamped li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  font-size: 0.88rem;
+}
+
+.lyrics-tap-stamped code {
+  color: var(--lime);
+  font-size: 0.78rem;
+}
+
+/* Competition scoreboard on artist profile */
+.comp-scoreboard {
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem 1.15rem 1.4rem;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(214, 255, 63, 0.12), transparent 42%),
+    rgba(12, 11, 10, 0.55);
+}
+
+.comp-scoreboard-head {
+  margin-bottom: 1rem;
+}
+
+.comp-scoreboard-head h2 {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+}
+
+.comp-score-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.5rem;
+  margin-bottom: 1.15rem;
+}
+
+.comp-score-ring {
+  --score: 0;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    var(--lime) calc(var(--score) * 1%),
+    rgba(255, 255, 255, 0.08) 0
+  );
+  animation: compRingIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.comp-score-ring-inner {
+  width: 5.85rem;
+  height: 5.85rem;
+  border-radius: 50%;
+  background: #0e0c0a;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.1rem;
+}
+
+.comp-score-ring-inner strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.comp-score-ring-inner span {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.comp-score-pending {
+  color: var(--muted);
+}
+
+.comp-score-meta {
+  min-width: min(100%, 16rem);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.comp-score-phase {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.comp-score-rank {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.comp-score-wait {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  color: #ffd27a;
+}
+
+.comp-score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.65rem;
+}
+
+.comp-score-card {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.comp-score-card strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.comp-score-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.comp-score-history {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.comp-score-history-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+
+.comp-score-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.comp-score-timeline-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.comp-score-timeline-ep {
+  font-family: var(--font-display), sans-serif;
+  color: var(--lime);
+  font-size: 1.05rem;
+}
+
+.comp-score-timeline-body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.comp-score-timeline-body strong {
+  font-size: 0.95rem;
+}
+
+.comp-score-timeline-score {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.2rem;
+}
+
+@keyframes compRingIn {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comp-score-ring {
+    animation: none;
+  }
+}

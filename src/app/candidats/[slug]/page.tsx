@@ -5,6 +5,11 @@ import { TrackComments } from "@/components/TrackComments";
 import { BackNav } from "@/components/BackNav";
 import { TrackListenCard } from "@/components/TrackListenCard";
 import {
+  CompetitionScoreboard,
+  buildCompetitionScores,
+  type CompetitionPhaseScore,
+} from "@/components/CompetitionScoreboard";
+import {
   getCandidateSession,
   getFanSession,
 } from "@/lib/auth";
@@ -12,12 +17,26 @@ import { prisma } from "@/lib/db";
 import {
   getActiveSeason,
   getCurrentPhase,
+  getPhaseEntries,
 } from "@/lib/competition";
+import { getEpisodeByNumber } from "@/lib/parcours";
+import { EXPECTED_JURY_COUNT } from "@/lib/jury";
+import { getMaxVotes } from "@/lib/scoring";
 import { formatVotes, formatXaf } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
+
+function phaseLabel(phase: {
+  number: number;
+  title: string;
+  theme: string | null;
+}) {
+  const episode = getEpisodeByNumber(phase.number);
+  if (episode) return `${episode.code} · ${episode.title}`;
+  return `E${phase.number} · ${phase.theme ?? phase.title}`;
+}
 
 export default async function CandidatePage({ params }: Props) {
   const { slug } = await params;
@@ -39,8 +58,94 @@ export default async function CandidatePage({ params }: Props) {
             candidateId: candidate.id,
           },
         },
+        include: {
+          _count: { select: { juryScores: true } },
+        },
       })
     : null;
+
+  const seasonEntries = season
+    ? await prisma.phaseEntry.findMany({
+        where: {
+          candidateId: candidate.id,
+          phase: { seasonId: season.id },
+        },
+        include: {
+          phase: true,
+          _count: { select: { juryScores: true } },
+        },
+        orderBy: { phase: { number: "asc" } },
+      })
+    : [];
+
+  let currentScore: CompetitionPhaseScore | null = null;
+  const history: CompetitionPhaseScore[] = [];
+
+  if (season && seasonEntries.length > 0) {
+    const uniquePhaseIds = [...new Set(seasonEntries.map((e) => e.phaseId))];
+    const fieldsByPhase = new Map<
+      string,
+      Awaited<ReturnType<typeof getPhaseEntries>>
+    >();
+    await Promise.all(
+      uniquePhaseIds.map(async (phaseId) => {
+        fieldsByPhase.set(phaseId, await getPhaseEntries(phaseId));
+      }),
+    );
+
+    for (const se of seasonEntries) {
+      const phaseField = fieldsByPhase.get(se.phaseId) ?? [];
+      const activeField = phaseField.filter((e) => e.status === "active");
+      const maxVotes = getMaxVotes(
+        activeField.length > 0 ? activeField : phaseField,
+      );
+      const ranked = activeField;
+      const rankIdx = ranked.findIndex((e) => e.candidateId === candidate.id);
+      const built = buildCompetitionScores({
+        phaseNumber: se.phase.number,
+        phaseLabel: phaseLabel(se.phase),
+        entry: {
+          phaseId: se.phaseId,
+          status: se.status,
+          votesCount: se.votesCount,
+          juryScore: se.juryScore,
+          juryRatedCount: se._count.juryScores,
+        },
+        maxVotes,
+        rank: rankIdx >= 0 ? rankIdx + 1 : null,
+        fieldSize: ranked.length,
+        juryExpected: EXPECTED_JURY_COUNT,
+      });
+      history.push(built);
+      if (phase && se.phaseId === phase.id) {
+        currentScore = built;
+      }
+    }
+  }
+
+  if (phase && entry && !currentScore) {
+    const phaseField = await getPhaseEntries(phase.id);
+    const activeField = phaseField.filter((e) => e.status === "active");
+    const maxVotes = getMaxVotes(
+      activeField.length > 0 ? activeField : phaseField,
+    );
+    const rankIdx = activeField.findIndex((e) => e.candidateId === candidate.id);
+    currentScore = buildCompetitionScores({
+      phaseNumber: phase.number,
+      phaseLabel: phaseLabel(phase),
+      entry: {
+        phaseId: entry.phaseId,
+        status: entry.status,
+        votesCount: entry.votesCount,
+        juryScore: entry.juryScore,
+        juryRatedCount: entry._count.juryScores,
+      },
+      maxVotes,
+      rank: rankIdx >= 0 ? rankIdx + 1 : null,
+      fieldSize: activeField.length,
+      juryExpected: EXPECTED_JURY_COUNT,
+    });
+  }
 
   const tracks = await prisma.phaseTrack.findMany({
     where: { candidateId: candidate.id },
@@ -92,6 +197,12 @@ export default async function CandidatePage({ params }: Props) {
               <p className="muted">Gains artiste</p>
               <strong>{formatXaf(candidate.totalEarnedXaf)}</strong>
             </div>
+            {currentScore?.rank ? (
+              <div>
+                <p className="muted">Rang phase</p>
+                <strong>#{currentScore.rank}</strong>
+              </div>
+            ) : null}
           </div>
           {phase ? (
             <p className="muted">
@@ -100,6 +211,12 @@ export default async function CandidatePage({ params }: Props) {
           ) : null}
         </div>
       </section>
+
+      <CompetitionScoreboard
+        stageName={candidate.stageName}
+        current={currentScore}
+        history={history}
+      />
 
       {phase && entry?.status === "active" && phase.votesOpen ? (
         <VoteForm
@@ -129,8 +246,7 @@ export default async function CandidatePage({ params }: Props) {
 
         {tracks.length === 0 ? (
           <p className="muted">
-            Aucun son publié pour le moment. L&apos;artiste upload depuis son
-            espace.
+            Aucun son publié pour le moment.
           </p>
         ) : (
           <div className="track-list">

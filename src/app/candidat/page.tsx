@@ -456,7 +456,9 @@ export default async function CandidateDashboardPage() {
                     <p className="muted">
                       {track
                         ? track.lyrics
-                          ? "Son en ligne · lyrics OK"
+                          ? /^\[\d{1,2}:\d{2}/m.test(track.lyrics)
+                            ? "Son en ligne · lyrics synchronisées"
+                            : "Son en ligne · lyrics OK"
                           : "Son en ligne · sans lyrics"
                         : "Pas encore de son"}
                     </p>
@@ -475,6 +477,7 @@ export default async function CandidateDashboardPage() {
                   <PhaseTrackUploadForm
                     phaseId={p.id}
                     hasTrack={Boolean(track)}
+                    audioUrl={track?.audioUrl}
                     defaultTitle={track?.title}
                     defaultLyrics={track?.lyrics}
                   />
