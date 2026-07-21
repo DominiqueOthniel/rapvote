@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getFanSession } from "@/lib/auth";
+import {
+  createCandidateNotification,
+  trackLabel,
+} from "@/lib/candidate-notifications";
 import { prisma } from "@/lib/db";
 
 const schema = z.object({
@@ -27,6 +31,7 @@ export async function POST(request: Request) {
 
   const track = await prisma.phaseTrack.findUnique({
     where: { id: parsed.data.trackId },
+    select: { id: true, candidateId: true, title: true },
   });
   if (!track) {
     return NextResponse.json({ error: "Son introuvable" }, { status: 404 });
@@ -53,6 +58,21 @@ export async function POST(request: Request) {
       body: parsed.data.body,
     },
     include: { fan: { select: { name: true } } },
+  });
+
+  const snippet =
+    comment.body.length > 120
+      ? `${comment.body.slice(0, 117)}…`
+      : comment.body;
+
+  await createCandidateNotification({
+    candidateId: track.candidateId,
+    type: "comment",
+    trackId: track.id,
+    fanId: fan.id,
+    commentId: comment.id,
+    title: `${fan.name} a commenté ${trackLabel(track.title)}`,
+    body: snippet,
   });
 
   return NextResponse.json({ ok: true, comment });

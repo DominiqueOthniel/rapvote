@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  createCandidateNotification,
+  trackLabel,
+} from "@/lib/candidate-notifications";
 import { prisma } from "@/lib/db";
 
 const BUCKET = "candidates";
@@ -47,7 +51,7 @@ export async function GET(request: Request) {
 
   const track = await prisma.phaseTrack.findUnique({
     where: { id: trackId },
-    select: { id: true, audioUrl: true, title: true },
+    select: { id: true, audioUrl: true, title: true, candidateId: true },
   });
   if (!track) {
     return NextResponse.json({ error: "Son introuvable" }, { status: 404 });
@@ -57,6 +61,13 @@ export async function GET(request: Request) {
     where: { id: track.id },
     data: { downloadCount: { increment: 1 } },
     select: { downloadCount: true },
+  });
+
+  await createCandidateNotification({
+    candidateId: track.candidateId,
+    type: "download",
+    trackId: track.id,
+    title: `Nouveau téléchargement de ${trackLabel(track.title)}`,
   });
 
   if (countOnly) {

@@ -77,6 +77,24 @@ model Candidate {
   payouts         Payout[]
   payoutRequests  PayoutRequest[]
   tracks          PhaseTrack[]
+  notifications   CandidateNotification[]
+}
+
+model CandidateNotification {
+  id          String    @id @default(cuid())
+  candidateId String
+  type        String
+  trackId     String?
+  fanId       String?
+  commentId   String?
+  title       String
+  body        String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, readAt])
 }
 
 model PhaseEntry {

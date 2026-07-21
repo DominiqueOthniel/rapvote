@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FanLoginForm } from "@/components/FanLoginForm";
+import { HeartLikeButton } from "@/components/HeartLikeButton";
 
 type Comment = {
   id: string;
@@ -144,18 +145,13 @@ export function TrackComments({
                 {isOwner || canDelete ? (
                   <div className="comment-actions">
                     {isOwner ? (
-                      <button
-                        type="button"
-                        className={
-                          comment.likedByArtist
-                            ? "btn-ghost comment-like is-liked"
-                            : "btn-ghost comment-like"
-                        }
-                        disabled={busyId === comment.id}
-                        onClick={() => toggleLike(comment.id)}
-                      >
-                        {comment.likedByArtist ? "Retirer le like" : "Liker"}
-                      </button>
+                      <HeartLikeButton
+                        liked={comment.likedByArtist}
+                        busy={busyId === comment.id}
+                        onToggle={() => toggleLike(comment.id)}
+                        labelLiked="Retirer le like artiste"
+                        labelIdle="Liker ce commentaire"
+                      />
                     ) : null}
                     {canDelete ? (
                       <button

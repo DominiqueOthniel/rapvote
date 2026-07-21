@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatVotes } from "@/lib/money";
+import { HeartLikeButton } from "@/components/HeartLikeButton";
 
 type Props = {
   trackId: string;
@@ -32,6 +33,8 @@ export function TrackListenCard({
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const countedPlay = useRef(false);
+  const listenedSeconds = useRef(0);
+  const lastCurrentTime = useRef(0);
   const [plays, setPlays] = useState(initialPlays);
   const [downloads, setDownloads] = useState(initialDownloads);
   const [likes, setLikes] = useState(initialLikes);
@@ -68,6 +71,33 @@ export function TrackListenCard({
     } catch {
       // ignore network errors for analytics
     }
+  }
+
+  function onAudioTimeUpdate() {
+    if (countedPlay.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const duration = audio.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const current = audio.currentTime;
+    const delta = current - lastCurrentTime.current;
+    // Compte seulement le temps réellement écouté (ignore les sauts de seek).
+    if (delta > 0 && delta < 1.5) {
+      listenedSeconds.current += delta;
+    }
+    lastCurrentTime.current = current;
+
+    if (listenedSeconds.current >= duration * 0.5) {
+      void registerPlay();
+    }
+  }
+
+  function onAudioSeeked() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    lastCurrentTime.current = audio.currentTime;
   }
 
   async function onDownload() {
@@ -193,20 +223,21 @@ export function TrackListenCard({
             preload="none"
             src={audioUrl}
             className="phase-audio-player track-listen-audio"
-            onPlay={registerPlay}
+            onTimeUpdate={onAudioTimeUpdate}
+            onSeeked={onAudioSeeked}
           >
             Lecteur audio
           </audio>
 
           <div className="track-listen-actions">
-            <button
-              type="button"
-              className={liked ? "btn-ghost track-like is-liked" : "btn-ghost track-like"}
-              onClick={toggleLike}
-              disabled={busyLike}
-            >
-              {liked ? "Aimé" : "Liker"}
-            </button>
+            <HeartLikeButton
+              liked={liked}
+              busy={busyLike}
+              count={likes}
+              onToggle={toggleLike}
+              labelLiked="Retirer le like"
+              labelIdle="Liker ce son"
+            />
             <button
               type="button"
               className="btn-ghost"

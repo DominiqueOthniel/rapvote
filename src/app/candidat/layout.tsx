@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { destroyCandidateSession, getCandidateSession } from "@/lib/auth";
 import { BrandMark } from "@/components/BrandMark";
+import { CandidateNotificationsBell } from "@/components/CandidateNotificationsBell";
 import { redirect } from "next/navigation";
 
 async function logout() {
@@ -26,6 +27,7 @@ export default async function CandidateLayout({
             <Link className="btn-ghost" href="/candidat">
               Mon profil
             </Link>
+            <CandidateNotificationsBell />
             <form action={logout}>
               <button className="btn-secondary" type="submit">
                 Déconnexion
