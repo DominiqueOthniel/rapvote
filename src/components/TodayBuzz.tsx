@@ -48,9 +48,14 @@ export function useTodayBuzz(
 
     void load();
     const id = window.setInterval(() => void load(), 15000);
+    function onRefresh() {
+      void load();
+    }
+    window.addEventListener("ftc:buzz-refresh", onRefresh);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      window.removeEventListener("ftc:buzz-refresh", onRefresh);
     };
     // trackIds serialized via trackKey
     // eslint-disable-next-line react-hooks/exhaustive-deps

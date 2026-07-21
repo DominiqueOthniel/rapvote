@@ -4,6 +4,7 @@
   --bg: #080706;
   --bg-2: #14110f;
   --ink: #f4efe6;
+  --on-lime: #12100e;
   --muted: #a89f92;
   --lime: #d6ff3f;
   --gold: #e4b54a;
@@ -277,7 +278,7 @@ video {
   height: 2.4rem;
   flex-shrink: 0;
   background: var(--lime);
-  color: #111;
+  color: var(--on-lime);
   font-family: var(--font-display), sans-serif;
   font-size: 0.95rem;
   letter-spacing: 0.04em;
@@ -644,7 +645,7 @@ select:focus-visible {
 
 .btn-primary {
   background: var(--lime);
-  color: #111;
+  color: var(--on-lime);
 }
 
 .btn-primary:hover {
@@ -1070,7 +1071,7 @@ select:focus-visible {
   font-family: var(--font-display), sans-serif;
   font-size: 1.4rem;
   letter-spacing: 0.04em;
-  color: #111;
+  color: var(--on-lime);
   background: var(--lime);
   padding: 0.15rem 0.45rem;
 }
@@ -1226,7 +1227,7 @@ select:focus-visible {
 }
 
 .artist-card-cta {
-  color: #111;
+  color: var(--on-lime);
   background: var(--lime);
   font-weight: 800;
   font-size: 0.78rem;
@@ -1352,7 +1353,7 @@ select:focus-visible {
 }
 
 .vote-mode-tab.active {
-  color: #111;
+  color: var(--on-lime);
   background: var(--lime);
   border-color: var(--lime);
 }
@@ -3179,7 +3180,7 @@ select:focus-visible {
   width: 2.75rem;
   height: 2.75rem;
   background: var(--lime);
-  color: #111;
+  color: var(--on-lime);
   border-color: var(--lime);
   font-weight: 800;
   box-shadow: 0 0 0 3px rgba(214, 255, 63, 0.18);
@@ -3623,7 +3624,7 @@ select:focus-visible {
 }
 
 .lyrics-sync-modes .btn-ghost.is-active {
-  color: var(--ink);
+  color: var(--on-lime);
   background: var(--lime);
 }
 
@@ -4023,7 +4024,7 @@ select:focus-visible {
 
 .fan-home-tab.is-active {
   background: var(--lime);
-  color: var(--ink);
+  color: var(--on-lime);
 }
 
 .fan-lib {
@@ -4265,7 +4266,7 @@ select:focus-visible {
 
 .artist-stats-tab.is-active {
   border-color: var(--metric, var(--lime));
-  color: var(--ink);
+  color: var(--on-lime);
   background: var(--metric, var(--lime));
   font-weight: 700;
 }
@@ -4313,7 +4314,7 @@ select:focus-visible {
 }
 
 .artist-share-formats .btn-ghost.is-active {
-  color: var(--ink);
+  color: var(--on-lime);
   background: var(--lime);
 }
 

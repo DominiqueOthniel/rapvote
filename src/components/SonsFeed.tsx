@@ -63,7 +63,7 @@ export function SonsFeed({
   tracks,
   phases,
   fanLoggedIn,
-  activePhaseId = null,
+  activePhaseId: _activePhaseId = null,
 }: Props) {
   const router = useRouter();
   const { track, isPlaying, playTrack, toggle, playCounts } = useFanPlayer();
@@ -83,8 +83,8 @@ export function SonsFeed({
   }, [tracks, phaseFilter]);
 
   const queue = useMemo(() => visible.map(toPlayerTrack), [visible]);
-  const buzzPhaseId =
-    phaseFilter === "all" ? activePhaseId : phaseFilter || activePhaseId;
+  // "Toutes" = buzz global du jour. Sinon, limité à la phase filtrée.
+  const buzzPhaseId = phaseFilter === "all" ? null : phaseFilter;
   const buzzTrackIds = useMemo(
     () =>
       (buzzPhaseId
@@ -126,6 +126,7 @@ export function SonsFeed({
       if (typeof data.likeCount === "number") {
         setLikes((prev) => ({ ...prev, [item.id]: data.likeCount }));
       }
+      window.dispatchEvent(new Event("ftc:buzz-refresh"));
       setBusyId(null);
       router.refresh();
     } catch {

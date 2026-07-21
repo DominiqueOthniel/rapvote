@@ -93,6 +93,7 @@ async function postPlayCount(trackId: string): Promise<{
         new CustomEvent("ftc:fan-engagement", { detail: data.engagement }),
       );
     }
+    window.dispatchEvent(new Event("ftc:buzz-refresh"));
     return {
       playCount:
         typeof data?.playCount === "number" ? data.playCount : 0,
