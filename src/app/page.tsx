@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArtistCards } from "@/components/ArtistCards";
 import { RankingList } from "@/components/RankingList";
+import { HeroMusicFloats } from "@/components/HeroMusicFloats";
 import {
   getActiveSeason,
   getCurrentPhase,
@@ -125,6 +126,7 @@ export default async function HomePage() {
           />
           <div className="hero-stage-mask" />
         </div>
+        <HeroMusicFloats />
         <div className="hero-copy">
           <p className="hero-kicker">Rap · Cameroun · New Star Punch</p>
           <h1 className="hero-title">
