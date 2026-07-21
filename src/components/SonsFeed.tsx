@@ -206,13 +206,21 @@ export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
                         )}
                       </Link>
                       <div className="sons-title-meta">
-                        <button
-                          type="button"
-                          className="sons-track-name"
-                          onClick={() => onRowPlay(item)}
-                        >
-                          {title}
-                        </button>
+                        <div className="sons-title-row">
+                          <button
+                            type="button"
+                            className="sons-track-name"
+                            onClick={() => onRowPlay(item)}
+                          >
+                            {title}
+                          </button>
+                          <span
+                            className="sons-plays-beside"
+                            title="Écoutes"
+                          >
+                            {formatVotes(item.playCount)}
+                          </span>
+                        </div>
                         <Link
                           href={`/candidats/${item.candidate.slug}`}
                           className="sons-artist-name"

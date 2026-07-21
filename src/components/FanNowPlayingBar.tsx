@@ -3,8 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
+import { FanPlayerComments } from "@/components/FanPlayerComments";
 import { useFanPlayer } from "@/components/FanPlayerProvider";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
+
+type Panel = "lyrics" | "comments" | null;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -24,31 +27,36 @@ export function FanNowPlayingBar() {
     playNext,
     playPrev,
   } = useFanPlayer();
-  const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [panel, setPanel] = useState<Panel>(null);
 
   useEffect(() => {
-    setLyricsOpen(false);
+    setPanel(null);
   }, [track?.id]);
 
   if (!track) return null;
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const hasLyrics = Boolean(track.lyrics?.trim());
+  const panelOpen = panel !== null;
+
+  function togglePanel(next: Panel) {
+    setPanel((current) => (current === next ? null : next));
+  }
 
   return (
     <div
-      className={`fan-now-playing${lyricsOpen ? " has-lyrics" : ""}`}
+      className={`fan-now-playing${panelOpen ? " has-panel" : ""}`}
       role="region"
       aria-label="Lecteur"
     >
-      {lyricsOpen && hasLyrics ? (
-        <div className="fan-now-lyrics">
-          <div className="fan-now-lyrics-head">
+      {panel === "lyrics" && hasLyrics ? (
+        <div className="fan-now-panel">
+          <div className="fan-now-panel-head">
             <strong>Lyrics</strong>
             <button
               type="button"
               className="btn-ghost"
-              onClick={() => setLyricsOpen(false)}
+              onClick={() => setPanel(null)}
             >
               Fermer
             </button>
@@ -60,6 +68,22 @@ export function FanNowPlayingBar() {
             isPlaying={isPlaying}
             onSeek={seek}
           />
+        </div>
+      ) : null}
+
+      {panel === "comments" ? (
+        <div className="fan-now-panel fan-now-panel-comments">
+          <div className="fan-now-panel-head">
+            <strong>Commentaires</strong>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setPanel(null)}
+            >
+              Fermer
+            </button>
+          </div>
+          <FanPlayerComments trackId={track.id} />
         </div>
       ) : null}
 
@@ -97,15 +121,33 @@ export function FanNowPlayingBar() {
           {hasLyrics ? (
             <button
               type="button"
-              className={`fan-now-btn${lyricsOpen ? " is-on" : ""}`}
-              onClick={() => setLyricsOpen((v) => !v)}
-              aria-pressed={lyricsOpen}
+              className={`fan-now-btn${panel === "lyrics" ? " is-on" : ""}`}
+              onClick={() => togglePanel("lyrics")}
+              aria-pressed={panel === "lyrics"}
               aria-label="Lyrics"
               title="Lyrics"
             >
               Aa
             </button>
           ) : null}
+          <button
+            type="button"
+            className={`fan-now-btn${panel === "comments" ? " is-on" : ""}`}
+            onClick={() => togglePanel("comments")}
+            aria-pressed={panel === "comments"}
+            aria-label="Commentaires"
+            title="Commentaires"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <button
             type="button"
             className="fan-now-btn"

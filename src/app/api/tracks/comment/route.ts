@@ -12,6 +12,43 @@ const schema = z.object({
   body: z.string().trim().min(2).max(500),
 });
 
+export async function GET(request: Request) {
+  const trackId = new URL(request.url).searchParams.get("trackId")?.trim();
+  if (!trackId) {
+    return NextResponse.json({ error: "Son invalide" }, { status: 400 });
+  }
+
+  const track = await prisma.phaseTrack.findUnique({
+    where: { id: trackId },
+    select: { id: true },
+  });
+  if (!track) {
+    return NextResponse.json({ error: "Son introuvable" }, { status: 404 });
+  }
+
+  const fan = await getFanSession();
+  const comments = await prisma.trackComment.findMany({
+    where: { trackId },
+    orderBy: { createdAt: "desc" },
+    take: 80,
+    include: {
+      fan: { select: { id: true, name: true } },
+    },
+  });
+
+  return NextResponse.json({
+    ok: true,
+    fan: fan ? { id: fan.id, name: fan.name } : null,
+    comments: comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      createdAt: c.createdAt.toISOString(),
+      likedByArtist: c.likedByArtist,
+      fan: c.fan,
+    })),
+  });
+}
+
 export async function POST(request: Request) {
   const fan = await getFanSession();
   if (!fan) {
