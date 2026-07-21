@@ -3262,7 +3262,8 @@ select:focus-visible {
 
 .synced-lyrics-line.is-current {
   color: #fff;
-  transform: translateX(4px) scale(1.02);
+  transform: translateX(4px) scale(1.03);
+  text-shadow: 0 0 18px rgba(214, 255, 63, calc(0.15 + var(--line-progress, 0) * 0.25));
 }
 
 .synced-lyrics-line.is-next {

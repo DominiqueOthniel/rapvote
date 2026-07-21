@@ -224,6 +224,21 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [playNext]);
 
+  // Horloge haute fréquence pendant la lecture (sync lyrics plus serrée).
+  useEffect(() => {
+    if (!isPlaying) return;
+    let raf = 0;
+    const tick = () => {
+      const audio = audioRef.current;
+      if (audio && !audio.paused) {
+        setCurrentTime(audio.currentTime);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying]);
+
   const value = useMemo(
     () => ({
       track,
