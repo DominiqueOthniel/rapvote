@@ -9,6 +9,7 @@ import {
   getPhaseRanking,
 } from "@/lib/competition";
 import { getEpisodeByNumber } from "@/lib/parcours";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,19 @@ export default async function HomePage() {
     votesCount: entry.votesCount,
   }));
 
+  const candidateIds = entries.map((entry) => entry.candidate.id);
+  const trackGroups =
+    candidateIds.length > 0
+      ? await prisma.phaseTrack.groupBy({
+          by: ["candidateId"],
+          where: { candidateId: { in: candidateIds } },
+          _count: { _all: true },
+        })
+      : [];
+  const trackCountById = Object.fromEntries(
+    trackGroups.map((g) => [g.candidateId, g._count._all]),
+  );
+
   let activeRank = 0;
   const artists = entries.map((entry) => ({
     slug: entry.candidate.slug,
@@ -90,6 +104,7 @@ export default async function HomePage() {
     bio: entry.candidate.bio,
     photoUrl: entry.candidate.photoUrl,
     votesCount: entry.votesCount,
+    trackCount: trackCountById[entry.candidate.id] ?? 0,
     rank: entry.status === "active" ? ++activeRank : undefined,
     eliminated: entry.status === "eliminated",
   }));

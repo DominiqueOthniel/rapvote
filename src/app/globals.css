@@ -557,6 +557,7 @@ select:focus-visible {
 
 .artist-card-media {
   position: relative;
+  display: block;
   aspect-ratio: 3 / 4;
   overflow: hidden;
   background: #1a1613;
@@ -591,6 +592,22 @@ select:focus-visible {
   color: #111;
   background: var(--lime);
   padding: 0.15rem 0.45rem;
+}
+
+.artist-card-tracks-badge {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 2;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(12, 11, 10, 0.72);
+  border: 1px solid rgba(214, 255, 63, 0.35);
+  backdrop-filter: blur(8px);
+  padding: 0.3rem 0.55rem;
 }
 
 .artist-card-fallback {
@@ -630,6 +647,14 @@ select:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.artist-card-meta h3 a {
+  color: inherit;
+}
+
+.artist-card-meta h3 a:hover {
+  color: var(--lime);
+}
+
 .artist-card-meta span {
   color: var(--muted);
   font-size: 0.82rem;
@@ -652,12 +677,66 @@ select:focus-visible {
   min-height: 4.1em;
 }
 
+.artist-card-actions {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.15rem;
+}
+
+.artist-disco-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--lime);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(214, 255, 63, 0.35);
+  padding-bottom: 0.2rem;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.25s ease;
+}
+
+.artist-disco-link:hover {
+  color: #f4efe6;
+  border-color: rgba(244, 239, 230, 0.55);
+  transform: translateX(3px);
+}
+
+.artist-disco-link-muted {
+  color: var(--muted);
+  border-color: rgba(168, 159, 146, 0.35);
+}
+
+.artist-disco-wave {
+  width: 1.35rem;
+  height: 0.7rem;
+  flex-shrink: 0;
+}
+
+.artist-disco-link:hover .artist-disco-wave {
+  animation: discoPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes discoPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.25);
+  }
+}
+
 .artist-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: 0.25rem;
   flex-wrap: wrap;
 }
 
@@ -1513,6 +1592,7 @@ select:focus-visible {
 .music-parcours {
   margin-top: 2.5rem;
   margin-bottom: 3rem;
+  scroll-margin-top: calc(var(--header-h) + 1rem);
 }
 
 .track-list {

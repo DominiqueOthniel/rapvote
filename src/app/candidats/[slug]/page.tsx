@@ -113,10 +113,10 @@ export default async function CandidatePage({ params }: Props) {
         </section>
       )}
 
-      <section className="music-parcours">
+      <section id="discographie" className="music-parcours">
         <div className="section-head">
           <div>
-            <p className="muted">Sons</p>
+            <p className="muted">Discographie</p>
             <h2>Parcours musical</h2>
           </div>
         </div>
