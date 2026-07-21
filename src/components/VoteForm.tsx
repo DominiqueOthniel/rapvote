@@ -177,7 +177,7 @@ export function VoteForm({
             <strong>Vote gratuit</strong>
             <p className="muted">
               Tu as {freeLeft} vote{freeLeft > 1 ? "s" : ""} offert
-              {freeLeft > 1 ? "s" : ""} (série d&apos;écoute).
+              {freeLeft > 1 ? "s" : ""} (10 écoutes).
             </p>
           </div>
           <button

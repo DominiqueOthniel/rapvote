@@ -161,7 +161,7 @@ export default async function HomePage() {
                 streakCount: engagement.streakCount,
                 freeVotes: engagement.freeVotes,
                 streakBadgeEarned: engagement.streakBadgeEarned,
-                daysToReward: engagement.daysToReward,
+                streamsToReward: engagement.streamsToReward,
               }
             : null
         }

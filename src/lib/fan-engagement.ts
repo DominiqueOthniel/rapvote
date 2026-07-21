@@ -1,14 +1,14 @@
 import { prisma } from "@/lib/db";
-import { STREAK_REWARD_DAYS } from "@/lib/fan-engagement-constants";
+import { STREAK_REWARD_STREAMS } from "@/lib/fan-engagement-constants";
 
-export { STREAK_REWARD_DAYS } from "@/lib/fan-engagement-constants";
+export { STREAK_REWARD_STREAMS } from "@/lib/fan-engagement-constants";
 
 export type FanEngagementSnapshot = {
   streakCount: number;
   freeVotes: number;
   streakBadgeEarned: boolean;
   lastListenDay: string | null;
-  daysToReward: number;
+  streamsToReward: number;
   rewardedNow: boolean;
 };
 
@@ -33,7 +33,6 @@ export function shiftDayKey(dayKey: string, deltaDays: number) {
 
 export function startOfCameroonDay(date = new Date()) {
   const key = cameroonDayKey(date);
-  // Minuit Douala = 23:00 UTC la veille en UTC+1 toute l'année (pas de DST).
   return new Date(`${key}T00:00:00+01:00`);
 }
 
@@ -46,18 +45,19 @@ function snapshotFromFan(
   },
   rewardedNow = false,
 ): FanEngagementSnapshot {
-  const progress = fan.streakCount % STREAK_REWARD_DAYS;
-  const daysToReward =
+  const progress = fan.streakCount % STREAK_REWARD_STREAMS;
+  const streamsToReward =
     progress === 0 && fan.streakCount > 0
-      ? STREAK_REWARD_DAYS
-      : STREAK_REWARD_DAYS - progress;
+      ? STREAK_REWARD_STREAMS
+      : STREAK_REWARD_STREAMS - progress;
 
   return {
     streakCount: fan.streakCount,
     freeVotes: fan.freeVotes,
     streakBadgeEarned: fan.streakBadgeEarned,
     lastListenDay: fan.lastListenDay,
-    daysToReward: fan.streakCount === 0 ? STREAK_REWARD_DAYS : daysToReward,
+    streamsToReward:
+      fan.streakCount === 0 ? STREAK_REWARD_STREAMS : streamsToReward,
     rewardedNow,
   };
 }
@@ -77,14 +77,14 @@ export async function getFanEngagement(fanId: string) {
 }
 
 /**
- * Enregistre une écoute comptée: historique, event FOMO, streak (+ vote gratuit tous les 3 jours).
+ * Enregistre une écoute comptée: historique, event FOMO,
+ * compteur de streams (+ vote gratuit tous les 10 streams).
  */
 export async function recordCountedListen(args: {
   trackId: string;
   fanId?: string | null;
 }) {
   const today = cameroonDayKey();
-  const yesterday = shiftDayKey(today, -1);
 
   await prisma.trackPlayEvent.create({
     data: {
@@ -124,17 +124,8 @@ export async function recordCountedListen(args: {
   });
   if (!fan) return null;
 
-  if (fan.lastListenDay === today) {
-    return snapshotFromFan(fan);
-  }
-
-  let nextStreak = 1;
-  if (fan.lastListenDay === yesterday) {
-    nextStreak = fan.streakCount + 1;
-  }
-
-  const rewardedNow =
-    nextStreak > 0 && nextStreak % STREAK_REWARD_DAYS === 0;
+  const nextStreak = fan.streakCount + 1;
+  const rewardedNow = nextStreak % STREAK_REWARD_STREAMS === 0;
 
   const updated = await prisma.fan.update({
     where: { id: fan.id },

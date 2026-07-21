@@ -60,13 +60,13 @@ export function useFanPlayerOptional() {
 
 async function postPlayCount(trackId: string): Promise<{
   playCount: number;
-  engagement?: {
-    streakCount: number;
-    freeVotes: number;
-    streakBadgeEarned: boolean;
-    daysToReward: number;
-    rewardedNow?: boolean;
-  } | null;
+      engagement?: {
+        streakCount: number;
+        freeVotes: number;
+        streakBadgeEarned: boolean;
+        streamsToReward: number;
+        rewardedNow?: boolean;
+      } | null;
 } | null> {
   const key = `ftc-play-${trackId}`;
   try {

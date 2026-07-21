@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { STREAK_REWARD_DAYS } from "@/lib/fan-engagement-constants";
+import { STREAK_REWARD_STREAMS } from "@/lib/fan-engagement-constants";
 
 export type FanEngagementState = {
   streakCount: number;
   freeVotes: number;
   streakBadgeEarned: boolean;
-  daysToReward: number;
+  streamsToReward: number;
   rewardedNow?: boolean;
 };
 
@@ -31,7 +31,7 @@ export function FanStreakCard({ initial }: Props) {
       setState(detail);
       if (detail.rewardedNow) {
         setFlash(
-          `Série de ${STREAK_REWARD_DAYS} jours ! +1 vote gratuit`,
+          `${STREAK_REWARD_STREAMS} écoutes ! +1 vote gratuit`,
         );
         window.setTimeout(() => setFlash(null), 5000);
       }
@@ -41,39 +41,35 @@ export function FanStreakCard({ initial }: Props) {
       window.removeEventListener("ftc:fan-engagement", onEngagement);
   }, []);
 
-  const progress = Math.min(
-    STREAK_REWARD_DAYS,
+  const inCycle =
     state.streakCount === 0
       ? 0
-      : ((state.streakCount - 1) % STREAK_REWARD_DAYS) + 1,
-  );
+      : ((state.streakCount - 1) % STREAK_REWARD_STREAMS) + 1;
+  const fillPct = Math.round((inCycle / STREAK_REWARD_STREAMS) * 100);
 
   return (
-    <section className="fan-streak-card" aria-label="Série d'écoute">
+    <section className="fan-streak-card" aria-label="Écoutes pour vote gratuit">
       <div className="fan-streak-main">
         <div>
-          <p className="muted">Série d&apos;écoute</p>
+          <p className="muted">Écoutes comptées</p>
           <p className="fan-streak-count">
-            <strong>{state.streakCount}</strong>
-            <span className="muted">
-              {" "}
-              jour{state.streakCount > 1 ? "s" : ""} d&apos;affilée
-            </span>
+            <strong>{inCycle}</strong>
+            <span className="muted"> / {STREAK_REWARD_STREAMS}</span>
           </p>
           <p className="muted fan-streak-hint">
             {state.streakCount === 0
-              ? `Écoute un son aujourd'hui pour démarrer · récompense à ${STREAK_REWARD_DAYS} jours`
-              : progress >= STREAK_REWARD_DAYS
-                ? "Objectif atteint. Continue demain pour enchaîner."
-                : `${STREAK_REWARD_DAYS - progress} jour${
-                    STREAK_REWARD_DAYS - progress > 1 ? "s" : ""
+              ? `Écoute un son (~30 s) · 1 vote gratuit tous les ${STREAK_REWARD_STREAMS} streams`
+              : inCycle >= STREAK_REWARD_STREAMS
+                ? "Objectif atteint. Continue pour le prochain."
+                : `${state.streamsToReward} écoute${
+                    state.streamsToReward > 1 ? "s" : ""
                   } pour le prochain vote gratuit`}
           </p>
         </div>
         <div className="fan-streak-side">
           {state.streakBadgeEarned ? (
-            <span className="fan-streak-badge" title="Badge série">
-              Badge série
+            <span className="fan-streak-badge" title="Badge streams">
+              Badge streams
             </span>
           ) : null}
           <span className="fan-streak-free">
@@ -88,18 +84,16 @@ export function FanStreakCard({ initial }: Props) {
         </div>
       </div>
       <div
-        className="fan-streak-meter"
+        className="fan-streak-meter fan-streak-meter-bar"
         role="progressbar"
-        aria-valuenow={progress}
+        aria-valuenow={inCycle}
         aria-valuemin={0}
-        aria-valuemax={STREAK_REWARD_DAYS}
+        aria-valuemax={STREAK_REWARD_STREAMS}
       >
-        {Array.from({ length: STREAK_REWARD_DAYS }, (_, i) => (
-          <span
-            key={i}
-            className={`fan-streak-pip${i < progress ? " is-on" : ""}`}
-          />
-        ))}
+        <span
+          className="fan-streak-meter-fill"
+          style={{ width: `${fillPct}%` }}
+        />
       </div>
       {flash ? <p className="fan-streak-flash">{flash}</p> : null}
     </section>

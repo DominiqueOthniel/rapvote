@@ -1663,6 +1663,18 @@ select:focus-visible {
   gap: 0.55rem;
 }
 
+.candidate-voters-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.candidate-voters-head .admin-form-title {
+  margin: 0;
+}
+
 .voter-row {
   display: flex;
   flex-wrap: wrap;
@@ -3894,6 +3906,20 @@ select:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
+}
+
+.fan-streak-meter-bar {
+  display: block;
+  height: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.fan-streak-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transition: width 0.35s ease;
 }
 
 .fan-streak-pip {

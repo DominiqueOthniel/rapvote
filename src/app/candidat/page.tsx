@@ -21,6 +21,7 @@ import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
 import { WithdrawalRequestForm } from "@/components/WithdrawalRequestForm";
 import { ArtistStatsPanel } from "@/components/ArtistStatsPanel";
 import { ArtistShareKit } from "@/components/ArtistShareKit";
+import { CandidateVotersCard } from "@/components/CandidateVotersCard";
 import { getArtistPhaseStats } from "@/lib/artist-stats";
 
 export const dynamic = "force-dynamic";
@@ -340,43 +341,26 @@ export default async function CandidateDashboardPage() {
           )}
         </section>
 
-        <section className="admin-card candidate-voters">
-          <h2 className="admin-form-title">Qui a voté pour toi</h2>
-          {paidVotes.length === 0 ? (
-            <p className="muted">Aucun vote confirmé pour l&apos;instant.</p>
-          ) : (
-            <ul className="voter-list">
-              {paidVotes.map((tx) => {
-                const when = tx.paidAt ?? tx.createdAt;
-                const phaseLabel = tx.phase
-                  ? `Ép. ${tx.phase.number}${
-                      tx.phase.theme || tx.phase.title
-                        ? ` · ${tx.phase.theme ?? tx.phase.title}`
-                        : ""
-                    }`
-                  : null;
-                return (
-                  <li key={tx.id} className="voter-row">
-                    <div className="voter-main">
-                      <strong>{tx.voterName?.trim() || "Fan anonyme"}</strong>
-                      <span className="muted">
-                        {formatVotes(tx.votesCount)} vote
-                        {tx.votesCount > 1 ? "s" : ""}
-                        {phaseLabel ? ` · ${phaseLabel}` : ""}
-                      </span>
-                    </div>
-                    <span className="muted voter-when">
-                      {new Date(when).toLocaleString("fr-FR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        <CandidateVotersCard
+          candidateId={candidate.id}
+          voters={paidVotes.map((tx) => {
+            const when = tx.paidAt ?? tx.createdAt;
+            const phaseLabel = tx.phase
+              ? `Ép. ${tx.phase.number}${
+                  tx.phase.theme || tx.phase.title
+                    ? ` · ${tx.phase.theme ?? tx.phase.title}`
+                    : ""
+                }`
+              : null;
+            return {
+              id: tx.id,
+              voterName: tx.voterName,
+              votesCount: tx.votesCount,
+              when: when.toISOString(),
+              phaseLabel,
+            };
+          })}
+        />
 
         <form
           action={updateProfile}
