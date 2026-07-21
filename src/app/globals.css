@@ -2382,6 +2382,7 @@ select:focus-visible {
 }
 
 .track-lyrics-panel {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
   min-height: 0;
@@ -2389,19 +2390,65 @@ select:focus-visible {
   background:
     linear-gradient(180deg, rgba(214, 255, 63, 0.05), transparent 28%),
     rgba(12, 11, 10, 0.55);
+  overflow: hidden;
+  animation: lyricsPanelIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.track-lyrics-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--lime),
+    transparent
+  );
+  opacity: 0.55;
+  animation: lyricsBarPulse 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.track-lyrics-panel::after {
+  content: "";
+  position: absolute;
+  left: -20%;
+  top: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(214, 255, 63, 0.07) 45%,
+    transparent 70%
+  );
+  animation: lyricsSheen 4.5s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .track-lyrics-head {
+  position: relative;
+  z-index: 1;
   padding: 0.85rem 1rem 0.35rem;
   border-bottom: 1px solid var(--line);
 }
 
 .track-lyrics-scroll {
+  position: relative;
+  z-index: 1;
   max-height: min(52vh, 420px);
   overflow: auto;
   padding: 1rem 1.1rem 1.25rem;
   outline: none;
   scroll-behavior: smooth;
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 8%,
+    #000 88%,
+    transparent 100%
+  );
 }
 
 .track-lyrics-scroll:focus-visible {
@@ -2416,6 +2463,84 @@ select:focus-visible {
   font-size: clamp(0.98rem, 2.4vw, 1.08rem);
   line-height: 1.7;
   color: #ebe4d8;
+  animation: lyricsTextIn 0.85s ease 0.12s both;
+}
+
+.lyrics-field .lyrics-textarea {
+  min-height: 11rem;
+  resize: vertical;
+  line-height: 1.55;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.35s ease,
+    background 0.25s ease;
+}
+
+.lyrics-field .lyrics-textarea:focus {
+  border-color: rgba(214, 255, 63, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(214, 255, 63, 0.25),
+    0 0 24px rgba(214, 255, 63, 0.12);
+  background: #12100d;
+  animation: lyricsFieldGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes lyricsPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lyricsTextIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lyricsSheen {
+  0%,
+  100% {
+    transform: translateX(-12%);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateX(160%);
+    opacity: 0.85;
+  }
+}
+
+@keyframes lyricsBarPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes lyricsFieldGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(214, 255, 63, 0.22),
+      0 0 18px rgba(214, 255, 63, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(214, 255, 63, 0.45),
+      0 0 28px rgba(214, 255, 63, 0.18);
+  }
 }
 
 @media (min-width: 900px) {
@@ -2553,7 +2678,12 @@ select:focus-visible {
   .candidate-profile,
   .vote-form,
   .hero-float,
-  .hero-float--vinyl .hero-float-icon svg {
+  .hero-float--vinyl .hero-float-icon svg,
+  .track-lyrics-panel,
+  .track-lyrics-panel::before,
+  .track-lyrics-panel::after,
+  .track-lyrics-text,
+  .lyrics-field .lyrics-textarea:focus {
     animation: none !important;
     opacity: 1;
     transform: none;

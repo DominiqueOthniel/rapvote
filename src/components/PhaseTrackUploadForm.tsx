@@ -147,10 +147,11 @@ export function PhaseTrackUploadForm({
           placeholder="Ex: Freestyle final"
         />
       </label>
-      <label className="field">
+      <label className="field lyrics-field">
         <span>Lyrics</span>
         <textarea
           name="lyrics"
+          className="lyrics-textarea"
           value={lyrics}
           onChange={(e) => setLyrics(e.target.value)}
           rows={8}
