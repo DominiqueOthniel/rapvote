@@ -3213,3 +3213,120 @@ select:focus-visible {
   background: rgba(214, 255, 63, 0.12);
   color: var(--lime);
 }
+
+/* Synced Spotify-like lyrics */
+.synced-lyrics {
+  position: relative;
+  min-height: 0;
+}
+
+.synced-lyrics-scroll {
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  padding: 0 1.1rem 1rem;
+  scroll-behavior: smooth;
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 10%,
+    #000 88%,
+    transparent 100%
+  );
+}
+
+.synced-lyrics-spacer {
+  height: 28%;
+  min-height: 4rem;
+  pointer-events: none;
+}
+
+.synced-lyrics-line {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.55;
+  padding: 0.35rem 0;
+  color: rgba(235, 228, 216, 0.35);
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.synced-lyrics-line.is-past {
+  color: rgba(235, 228, 216, 0.45);
+}
+
+.synced-lyrics-line.is-current {
+  color: #fff;
+  transform: translateX(4px) scale(1.02);
+}
+
+.synced-lyrics-line.is-next {
+  color: rgba(235, 228, 216, 0.28);
+}
+
+.synced-lyrics-follow {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  background: rgba(14, 13, 12, 0.92);
+  color: var(--lime);
+  min-height: 2.2rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fan-now-playing.has-lyrics {
+  max-height: min(78vh, 640px);
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+
+.fan-now-lyrics {
+  min-height: 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 7, 6, 0.98);
+  padding: 0.75rem var(--gutter) 0.35rem;
+}
+
+.fan-now-lyrics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.fan-now-lyrics .synced-lyrics-scroll {
+  max-height: min(48vh, 380px);
+}
+
+.fan-now-btn.is-on {
+  border-color: rgba(214, 255, 63, 0.55);
+  color: var(--lime);
+}
+
+@media (min-width: 900px) {
+  .synced-lyrics-scroll {
+    max-height: min(64vh, 540px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .synced-lyrics-line {
+    transition: none;
+  }
+  .synced-lyrics-scroll {
+    scroll-behavior: auto;
+  }
+}

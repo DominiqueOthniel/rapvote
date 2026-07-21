@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useFanPlayer } from "@/components/FanPlayerProvider";
+import { SyncedLyrics } from "@/components/SyncedLyrics";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -23,13 +24,45 @@ export function FanNowPlayingBar() {
     playNext,
     playPrev,
   } = useFanPlayer();
+  const [lyricsOpen, setLyricsOpen] = useState(false);
+
+  useEffect(() => {
+    setLyricsOpen(false);
+  }, [track?.id]);
 
   if (!track) return null;
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const hasLyrics = Boolean(track.lyrics?.trim());
 
   return (
-    <div className="fan-now-playing" role="region" aria-label="Lecteur">
+    <div
+      className={`fan-now-playing${lyricsOpen ? " has-lyrics" : ""}`}
+      role="region"
+      aria-label="Lecteur"
+    >
+      {lyricsOpen && hasLyrics ? (
+        <div className="fan-now-lyrics">
+          <div className="fan-now-lyrics-head">
+            <strong>Lyrics</strong>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setLyricsOpen(false)}
+            >
+              Fermer
+            </button>
+          </div>
+          <SyncedLyrics
+            lyrics={track.lyrics!}
+            currentTime={currentTime}
+            duration={duration}
+            isPlaying={isPlaying}
+            onSeek={seek}
+          />
+        </div>
+      ) : null}
+
       <div className="fan-now-playing-inner">
         <Link
           href={`/candidats/${track.candidateSlug}`}
@@ -61,6 +94,18 @@ export function FanNowPlayingBar() {
         </div>
 
         <div className="fan-now-controls">
+          {hasLyrics ? (
+            <button
+              type="button"
+              className={`fan-now-btn${lyricsOpen ? " is-on" : ""}`}
+              onClick={() => setLyricsOpen((v) => !v)}
+              aria-pressed={lyricsOpen}
+              aria-label="Lyrics"
+              title="Lyrics"
+            >
+              Aa
+            </button>
+          ) : null}
           <button
             type="button"
             className="fan-now-btn"

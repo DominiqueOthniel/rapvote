@@ -20,6 +20,7 @@ export type FanPlayerTrack = {
   candidatePhotoUrl: string | null;
   likeCount: number;
   likedByFan: boolean;
+  lyrics?: string | null;
 };
 
 type FanPlayerContextValue = {

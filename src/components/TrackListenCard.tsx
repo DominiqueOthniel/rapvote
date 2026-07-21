@@ -8,6 +8,7 @@ import {
   useFanPlayerOptional,
   type FanPlayerTrack,
 } from "@/components/FanPlayerProvider";
+import { SyncedLyrics } from "@/components/SyncedLyrics";
 
 type Props = {
   trackId: string;
@@ -66,6 +67,7 @@ export function TrackListenCard({
       candidatePhotoUrl,
       likeCount: likes,
       likedByFan: liked,
+      lyrics,
     };
     if (isActive) {
       player.toggle();
@@ -235,9 +237,19 @@ export function TrackListenCard({
             <div className="track-lyrics-head">
               <p className="track-listen-kicker">Lyrics</p>
             </div>
-            <div className="track-lyrics-scroll" tabIndex={0}>
-              <pre className="track-lyrics-text">{lyrics}</pre>
-            </div>
+            {isActive && player ? (
+              <SyncedLyrics
+                lyrics={lyrics!}
+                currentTime={player.currentTime}
+                duration={player.duration}
+                isPlaying={isPlaying}
+                onSeek={player.seek}
+              />
+            ) : (
+              <div className="track-lyrics-scroll" tabIndex={0}>
+                <pre className="track-lyrics-text">{lyrics}</pre>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

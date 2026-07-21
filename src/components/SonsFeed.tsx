@@ -20,6 +20,7 @@ export type SonsFeedItem = {
   likedByFan: boolean;
   phaseId: string;
   phaseLabel: string;
+  lyrics: string | null;
   candidate: {
     slug: string;
     stageName: string;
@@ -48,6 +49,7 @@ function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
     candidatePhotoUrl: item.candidate.photoUrl,
     likeCount: item.likeCount,
     likedByFan: item.likedByFan,
+    lyrics: item.lyrics,
   };
 }
 

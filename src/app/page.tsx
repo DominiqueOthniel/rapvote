@@ -125,6 +125,7 @@ export default async function HomePage() {
     likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
     phaseId: t.phaseId,
     phaseLabel: phaseChipLabel(t.phase),
+    lyrics: t.lyrics,
     candidate: {
       slug: t.candidate.slug,
       stageName: t.candidate.stageName,
