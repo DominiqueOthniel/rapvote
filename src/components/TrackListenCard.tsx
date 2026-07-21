@@ -37,6 +37,7 @@ export function TrackListenCard({
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(likedByFan);
   const [busyLike, setBusyLike] = useState(false);
+  const [busyDownload, setBusyDownload] = useState(false);
   const [likeHint, setLikeHint] = useState<string | null>(null);
 
   const hasLyrics = Boolean(lyrics?.trim());
@@ -70,28 +71,69 @@ export function TrackListenCard({
   }
 
   async function onDownload() {
-    try {
-      const res = await fetch("/api/tracks/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trackId }),
-      });
-      const data = await res.json();
-      if (res.ok && typeof data.downloadCount === "number") {
-        setDownloads(data.downloadCount);
-      }
-    } catch {
-      // still allow download
-    }
+    if (busyDownload) return;
+    setBusyDownload(true);
+    setLikeHint(null);
 
-    const link = document.createElement("a");
-    link.href = audioUrl;
-    link.download = `${title.replace(/[^\w\-]+/g, "_") || "son"}.mp3`;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    try {
+      // 1) Tente un vrai fichier côté navigateur (blob) pour forcer le download.
+      const fileRes = await fetch(audioUrl, { mode: "cors" });
+      if (fileRes.ok) {
+        const blob = await fileRes.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const filename =
+          `${title
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\w\s.-]+/g, "")
+            .trim()
+            .replace(/\s+/g, "_")
+            .slice(0, 80) || "son"}.mp3`;
+
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+
+        // Compte après succès réel.
+        const countRes = await fetch(
+          `/api/tracks/download?trackId=${encodeURIComponent(trackId)}&countOnly=1`,
+        );
+        if (countRes.ok) {
+          const data = await countRes.json().catch(() => null);
+          if (typeof data?.downloadCount === "number") {
+            setDownloads(data.downloadCount);
+          } else {
+            setDownloads((n) => n + 1);
+          }
+        } else {
+          setDownloads((n) => n + 1);
+        }
+        return;
+      }
+
+      // 2) Fallback serveur (signed URL / proxy).
+      const link = document.createElement("a");
+      link.href = `/api/tracks/download?trackId=${encodeURIComponent(trackId)}`;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setDownloads((n) => n + 1);
+    } catch {
+      // Dernier recours: endpoint serveur.
+      try {
+        window.location.href = `/api/tracks/download?trackId=${encodeURIComponent(trackId)}`;
+        setDownloads((n) => n + 1);
+      } catch {
+        setLikeHint("Téléchargement impossible. Réessaie.");
+      }
+    } finally {
+      setBusyDownload(false);
+    }
   }
 
   async function toggleLike() {
@@ -169,8 +211,9 @@ export function TrackListenCard({
               type="button"
               className="btn-ghost"
               onClick={onDownload}
+              disabled={busyDownload}
             >
-              Télécharger
+              {busyDownload ? "Téléchargement..." : "Télécharger"}
             </button>
           </div>
 
