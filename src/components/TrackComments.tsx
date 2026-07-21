@@ -9,14 +9,13 @@ type Comment = {
   body: string;
   createdAt: string;
   likedByArtist: boolean;
-  fan: { name: string };
+  fan: { id: string; name: string };
 };
 
 type Props = {
   trackId: string;
   comments: Comment[];
   fan: { id: string; name: string } | null;
-  isAdmin?: boolean;
   isOwner?: boolean;
 };
 
@@ -24,7 +23,6 @@ export function TrackComments({
   trackId,
   comments,
   fan,
-  isAdmin,
   isOwner,
 }: Props) {
   const router = useRouter();
@@ -34,8 +32,6 @@ export function TrackComments({
   const [loggingOut, setLoggingOut] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  const canModerate = Boolean(isOwner || isAdmin);
 
   async function postComment(e: React.FormEvent) {
     e.preventDefault();
@@ -126,51 +122,56 @@ export function TrackComments({
         <p className="muted">Aucun commentaire pour l&apos;instant.</p>
       ) : (
         <ul className="comment-list">
-          {comments.map((comment) => (
-            <li key={comment.id} className="comment-item">
-              <div className="comment-meta">
-                <strong>{comment.fan.name}</strong>
-                <span className="muted comment-date">
-                  {new Date(comment.createdAt).toLocaleString("fr-FR", {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
-                </span>
-                {comment.likedByArtist ? (
-                  <span className="comment-liked">Aimé par l&apos;artiste</span>
-                ) : null}
-              </div>
-              <p>{comment.body}</p>
-              {canModerate || isOwner ? (
-                <div className="comment-actions">
-                  {isOwner ? (
-                    <button
-                      type="button"
-                      className={
-                        comment.likedByArtist
-                          ? "btn-ghost comment-like is-liked"
-                          : "btn-ghost comment-like"
-                      }
-                      disabled={busyId === comment.id}
-                      onClick={() => toggleLike(comment.id)}
-                    >
-                      {comment.likedByArtist ? "Retirer le like" : "Liker"}
-                    </button>
-                  ) : null}
-                  {canModerate ? (
-                    <button
-                      type="button"
-                      className="btn-ghost comment-delete"
-                      disabled={busyId === comment.id}
-                      onClick={() => deleteComment(comment.id)}
-                    >
-                      Supprimer
-                    </button>
+          {comments.map((comment) => {
+            const isAuthor = fan?.id === comment.fan.id;
+            const canDelete = Boolean(isOwner || isAuthor);
+
+            return (
+              <li key={comment.id} className="comment-item">
+                <div className="comment-meta">
+                  <strong>{comment.fan.name}</strong>
+                  <span className="muted comment-date">
+                    {new Date(comment.createdAt).toLocaleString("fr-FR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </span>
+                  {comment.likedByArtist ? (
+                    <span className="comment-liked">Aimé par l&apos;artiste</span>
                   ) : null}
                 </div>
-              ) : null}
-            </li>
-          ))}
+                <p>{comment.body}</p>
+                {isOwner || canDelete ? (
+                  <div className="comment-actions">
+                    {isOwner ? (
+                      <button
+                        type="button"
+                        className={
+                          comment.likedByArtist
+                            ? "btn-ghost comment-like is-liked"
+                            : "btn-ghost comment-like"
+                        }
+                        disabled={busyId === comment.id}
+                        onClick={() => toggleLike(comment.id)}
+                      >
+                        {comment.likedByArtist ? "Retirer le like" : "Liker"}
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        className="btn-ghost comment-delete"
+                        disabled={busyId === comment.id}
+                        onClick={() => deleteComment(comment.id)}
+                      >
+                        Supprimer
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
 

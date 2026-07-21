@@ -50,7 +50,7 @@ export default async function CandidatePage({ params }: Props) {
       phase: true,
       comments: {
         orderBy: { createdAt: "desc" },
-        include: { fan: { select: { name: true } } },
+        include: { fan: { select: { id: true, name: true } } },
       },
       likes: fan
         ? { where: { fanId: fan.id }, select: { id: true } }
@@ -155,14 +155,13 @@ export default async function CandidatePage({ params }: Props) {
                 <TrackComments
                   trackId={track.id}
                   fan={fan ? { id: fan.id, name: fan.name } : null}
-                  isAdmin={Boolean(admin)}
                   isOwner={isOwner}
                   comments={track.comments.map((c) => ({
                     id: c.id,
                     body: c.body,
                     createdAt: c.createdAt.toISOString(),
                     likedByArtist: c.likedByArtist,
-                    fan: { name: c.fan.name },
+                    fan: { id: c.fan.id, name: c.fan.name },
                   }))}
                 />
               </article>

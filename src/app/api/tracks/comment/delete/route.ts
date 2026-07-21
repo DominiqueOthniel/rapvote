@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  getAdminSession,
-  getCandidateSession,
-} from "@/lib/auth";
+import { getCandidateSession, getFanSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 const schema = z.object({
@@ -24,11 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Commentaire introuvable" }, { status: 404 });
   }
 
-  const admin = await getAdminSession();
+  const fan = await getFanSession();
   const candidate = await getCandidateSession();
-  const isOwner = candidate?.id === comment.track.candidateId;
+  const isAuthor = fan?.id === comment.fanId;
+  const isTrackOwner = candidate?.id === comment.track.candidateId;
 
-  if (!admin && !isOwner) {
+  if (!isAuthor && !isTrackOwner) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
