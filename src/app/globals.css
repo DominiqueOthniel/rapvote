@@ -443,6 +443,38 @@ select:focus-visible {
   padding: 1rem 0 3rem;
 }
 
+.page-back-nav {
+  margin: 0;
+}
+
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--line);
+  background: rgba(12, 11, 10, 0.55);
+  color: var(--ink);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  width: fit-content;
+}
+
+.page-back-btn:hover {
+  border-color: rgba(214, 255, 63, 0.55);
+  color: var(--lime);
+  transform: translateX(-3px);
+}
+
+.page-back-arrow {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .candidate-panel,
 .vote-form,
 .admin-card,

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { VoteForm } from "@/components/VoteForm";
 import { TrackComments } from "@/components/TrackComments";
+import { BackNav } from "@/components/BackNav";
 import {
   getAdminSession,
   getCandidateSession,
@@ -56,6 +57,8 @@ export default async function CandidatePage({ params }: Props) {
 
   return (
     <main className="shell candidate-hero">
+      <BackNav />
+
       <section className="candidate-panel candidate-profile">
         <div className="candidate-photo">
           {candidate.photoUrl ? (
