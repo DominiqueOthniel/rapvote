@@ -16,6 +16,7 @@ const schema = z
   .object({
     candidateId: z.string().min(1),
     phaseId: z.string().min(1),
+    voterName: z.string().trim().min(2).max(60),
     phone: z.string().min(8),
     operator: z.enum(["ORANGE", "MTN"]),
     packageId: z.string().min(1).optional(),
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
         candidateId: candidate.id,
         packageId,
         voterPhone: phone,
+        voterName: parsed.data.voterName.trim(),
         operator: parsed.data.operator,
         votesCount,
         amountXaf,

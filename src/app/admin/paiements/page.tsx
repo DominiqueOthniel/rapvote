@@ -66,6 +66,7 @@ export default async function AdminPaymentsPage() {
                 <th>Réf</th>
                 <th>Notch</th>
                 <th>Artiste</th>
+                <th>Votant</th>
                 <th>Opérateur</th>
                 <th>Votes</th>
                 <th>Montant</th>
@@ -80,6 +81,7 @@ export default async function AdminPaymentsPage() {
                   <td>{tx.reference}</td>
                   <td className="muted">{tx.campayRef ?? "—"}</td>
                   <td>{tx.candidate.stageName}</td>
+                  <td>{tx.voterName?.trim() || "—"}</td>
                   <td>{tx.operator}</td>
                   <td>{formatVotes(tx.votesCount)}</td>
                   <td>{formatXaf(tx.amountXaf)}</td>

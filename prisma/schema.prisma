@@ -159,6 +159,7 @@ model Transaction {
   candidateId      String
   packageId        String
   voterPhone       String
+  voterName        String?
   operator         String
   votesCount       Int
   amountXaf        Int

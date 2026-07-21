@@ -29,6 +29,7 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
   const [mode, setMode] = useState<Mode>("pack");
   const [packageId, setPackageId] = useState(packages[0]?.id ?? "");
   const [customVotes, setCustomVotes] = useState("15");
+  const [voterName, setVoterName] = useState("");
   const [phone, setPhone] = useState("");
   const [operator, setOperator] = useState<"ORANGE" | "MTN">("ORANGE");
   const [loading, setLoading] = useState(false);
@@ -75,6 +76,13 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
       return;
     }
 
+    const name = voterName.trim();
+    if (name.length < 2) {
+      setError("Indique ton nom ou pseudo (2 caractères minimum).");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/vote", {
         method: "POST",
@@ -82,6 +90,7 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
         body: JSON.stringify({
           candidateId,
           phaseId,
+          voterName: name,
           phone,
           operator,
           ...(mode === "custom"
@@ -177,6 +186,23 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
       )}
 
       <p className="vote-summary">{summary}</p>
+
+      <label className="field">
+        <span>Ton nom ou pseudo</span>
+        <input
+          type="text"
+          name="voterName"
+          placeholder="Ex: Fan de Douala"
+          value={voterName}
+          onChange={(e) => setVoterName(e.target.value)}
+          maxLength={60}
+          required
+          autoComplete="nickname"
+        />
+        <span className="field-hint">
+          Visible par l&apos;artiste pour savoir qui a voté
+        </span>
+      </label>
 
       <label className="field">
         <span>Opérateur</span>

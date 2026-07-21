@@ -230,6 +230,20 @@ export default async function CandidateDashboardPage() {
     take: 10,
   });
 
+  const paidVotes = await prisma.transaction.findMany({
+    where: { candidateId: candidate.id, status: "paid" },
+    orderBy: { paidAt: "desc" },
+    take: 40,
+    select: {
+      id: true,
+      voterName: true,
+      votesCount: true,
+      paidAt: true,
+      createdAt: true,
+      phase: { select: { number: true, theme: true, title: true } },
+    },
+  });
+
   return (
     <main>
       <h1 className="page-title">Mon espace</h1>
@@ -303,6 +317,47 @@ export default async function CandidateDashboardPage() {
                   <strong>{formatXaf(req.amountXaf)}</strong>
                 </li>
               ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="admin-card candidate-voters">
+          <h2 className="admin-form-title">Qui a voté pour toi</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Noms / pseudos des fans après paiement confirmé.
+          </p>
+          {paidVotes.length === 0 ? (
+            <p className="muted">Aucun vote confirmé pour l&apos;instant.</p>
+          ) : (
+            <ul className="voter-list">
+              {paidVotes.map((tx) => {
+                const when = tx.paidAt ?? tx.createdAt;
+                const phaseLabel = tx.phase
+                  ? `Ép. ${tx.phase.number}${
+                      tx.phase.theme || tx.phase.title
+                        ? ` · ${tx.phase.theme ?? tx.phase.title}`
+                        : ""
+                    }`
+                  : null;
+                return (
+                  <li key={tx.id} className="voter-row">
+                    <div className="voter-main">
+                      <strong>{tx.voterName?.trim() || "Fan anonyme"}</strong>
+                      <span className="muted">
+                        {formatVotes(tx.votesCount)} vote
+                        {tx.votesCount > 1 ? "s" : ""}
+                        {phaseLabel ? ` · ${phaseLabel}` : ""}
+                      </span>
+                    </div>
+                    <span className="muted voter-when">
+                      {new Date(when).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
