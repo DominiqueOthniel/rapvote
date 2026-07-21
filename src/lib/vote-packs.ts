@@ -4,18 +4,15 @@ export const BASE_VOTE_PRICE_XAF = 100;
 /** Plafond pour un vote libre. */
 export const MAX_CUSTOM_VOTES = 1000;
 
+/** Packs courts et stratégiques : entrée + milieu + gros volumes. */
 export const DEFAULT_VOTE_PACKS = [
   { votesCount: 1, sortOrder: 1 },
-  { votesCount: 2, sortOrder: 2 },
-  { votesCount: 3, sortOrder: 3 },
-  { votesCount: 5, sortOrder: 4 },
-  { votesCount: 10, sortOrder: 5 },
-  { votesCount: 20, sortOrder: 6 },
-  { votesCount: 25, sortOrder: 7 },
-  { votesCount: 50, sortOrder: 8 },
-  { votesCount: 100, sortOrder: 9 },
-  { votesCount: 200, sortOrder: 10 },
-  { votesCount: 500, sortOrder: 11 },
+  { votesCount: 5, sortOrder: 2 },
+  { votesCount: 10, sortOrder: 3 },
+  { votesCount: 25, sortOrder: 4 },
+  { votesCount: 50, sortOrder: 5 },
+  { votesCount: 100, sortOrder: 6 },
+  { votesCount: 200, sortOrder: 7 },
 ] as const;
 
 /**

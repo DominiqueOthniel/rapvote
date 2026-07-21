@@ -40,9 +40,17 @@ export async function getActiveSeason() {
 
   if (!season) return null;
 
-  const have = new Set(season.packages.map((p) => p.votesCount));
-  const missing = DEFAULT_VOTE_PACKS.some((p) => !have.has(p.votesCount));
-  if (missing || season.packages.length < DEFAULT_VOTE_PACKS.length) {
+  const wanted = DEFAULT_VOTE_PACKS.map((p) => p.votesCount);
+  const activeCounts = season.packages.map((p) => p.votesCount).sort((a, b) => a - b);
+  const wantedSorted = [...wanted].sort((a, b) => a - b);
+  const sameLength = activeCounts.length === wantedSorted.length;
+  const sameSet =
+    sameLength &&
+    activeCounts.every((count, i) => count === wantedSorted[i]);
+  const hasDupes =
+    new Set(activeCounts).size !== activeCounts.length;
+
+  if (!sameSet || hasDupes) {
     const packages = await ensureSeasonVotePackages(season.id);
     return { ...season, packages };
   }

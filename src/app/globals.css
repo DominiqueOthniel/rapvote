@@ -840,7 +840,14 @@ select:focus-visible {
 }
 
 .pack-grid-dense {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 700px) {
+  .pack-grid-dense {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 34rem;
+  }
 }
 
 .vote-mode-tabs {
@@ -1628,7 +1635,7 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .pack-grid-dense {
+  .pack-grid.pack-grid-dense {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

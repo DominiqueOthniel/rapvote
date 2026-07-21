@@ -5,20 +5,49 @@ import {
   votePackLabel,
 } from "@/lib/vote-packs";
 
-/** Garantit les packs de votes étendus pour une saison. */
+/** Garantit une liste courte de packs uniques, sans doublons. */
 export async function ensureSeasonVotePackages(seasonId: string) {
+  const wanted = new Set(DEFAULT_VOTE_PACKS.map((p) => p.votesCount));
   const existing = await prisma.votePackage.findMany({
     where: { seasonId },
+    orderBy: { createdAt: "asc" },
   });
-  const byVotes = new Map(existing.map((p) => [p.votesCount, p]));
+
+  const keepByVotes = new Map<number, string>();
+
+  for (const pack of existing) {
+    if (!wanted.has(pack.votesCount)) {
+      if (pack.isActive) {
+        await prisma.votePackage.update({
+          where: { id: pack.id },
+          data: { isActive: false },
+        });
+      }
+      continue;
+    }
+
+    const keptId = keepByVotes.get(pack.votesCount);
+    if (!keptId) {
+      keepByVotes.set(pack.votesCount, pack.id);
+      continue;
+    }
+
+    // Doublon : on désactive les copies.
+    if (pack.isActive) {
+      await prisma.votePackage.update({
+        where: { id: pack.id },
+        data: { isActive: false },
+      });
+    }
+  }
 
   for (const pack of DEFAULT_VOTE_PACKS) {
     const priceXaf = priceForVotes(pack.votesCount);
     const label = votePackLabel(pack.votesCount);
-    const found = byVotes.get(pack.votesCount);
+    const keptId = keepByVotes.get(pack.votesCount);
 
-    if (!found) {
-      await prisma.votePackage.create({
+    if (!keptId) {
+      const created = await prisma.votePackage.create({
         data: {
           seasonId,
           label,
@@ -28,11 +57,12 @@ export async function ensureSeasonVotePackages(seasonId: string) {
           isActive: true,
         },
       });
+      keepByVotes.set(pack.votesCount, created.id);
       continue;
     }
 
     await prisma.votePackage.update({
-      where: { id: found.id },
+      where: { id: keptId },
       data: {
         label,
         priceXaf,
