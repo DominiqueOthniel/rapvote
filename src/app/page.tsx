@@ -10,6 +10,7 @@ import {
   getPhaseRanking,
 } from "@/lib/competition";
 import { getEpisodeByNumber } from "@/lib/parcours";
+import { WHATSAPP_GROUP_URL } from "@/lib/community";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +145,14 @@ export default async function HomePage() {
             <Link className="btn-secondary btn-on-media" href="/phases">
               Le parcours
             </Link>
+            <a
+              className="btn-whatsapp btn-whatsapp-hero"
+              href={WHATSAPP_GROUP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Groupe WhatsApp
+            </a>
           </div>
         </div>
       </section>

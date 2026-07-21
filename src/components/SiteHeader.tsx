@@ -3,6 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  WHATSAPP_GROUP_LABEL,
+  WHATSAPP_GROUP_URL,
+} from "@/lib/community";
 
 const links = [
   { href: "/", label: "Accueil" },
@@ -45,6 +49,15 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <a
+            className="nav-link nav-whatsapp"
+            href={WHATSAPP_GROUP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+            <span className="sr-only"> · {WHATSAPP_GROUP_LABEL}</span>
+          </a>
         </nav>
       </div>
     </header>

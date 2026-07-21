@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Manrope } from "next/font/google";
 import { SiteAtmosphere } from "@/components/SiteAtmosphere";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({
         <div className="site-content">
           <SiteHeader />
           {children}
+          <SiteFooter />
         </div>
       </body>
     </html>
