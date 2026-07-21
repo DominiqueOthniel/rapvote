@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0c0b0a;
-  --bg-2: #161311;
+  --bg: #080706;
+  --bg-2: #14110f;
   --ink: #f4efe6;
   --muted: #a89f92;
   --lime: #d6ff3f;
@@ -37,13 +37,185 @@ body {
   min-height: 100%;
 }
 
-body {
-  background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(214, 255, 63, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(228, 181, 74, 0.1), transparent 45%),
-    linear-gradient(180deg, #12100e 0%, var(--bg) 40%, #090807 100%);
+body,
+.site-body {
+  background: #060504;
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
+  position: relative;
+}
+
+.site-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.site-atmosphere-base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(214, 255, 63, 0.16), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 100% 12%, rgba(228, 181, 74, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 0% 35%, rgba(255, 121, 0, 0.07), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 110%, rgba(214, 255, 63, 0.06), transparent 55%),
+    linear-gradient(180deg, #15120f 0%, #0b0908 42%, #050403 100%);
+}
+
+.site-atmosphere-beams {
+  position: absolute;
+  inset: -10% 0 0;
+  background:
+    conic-gradient(
+      from 210deg at 18% -5%,
+      transparent 0deg,
+      rgba(214, 255, 63, 0.09) 12deg,
+      transparent 24deg,
+      transparent 160deg,
+      rgba(228, 181, 74, 0.07) 172deg,
+      transparent 188deg
+    ),
+    conic-gradient(
+      from 150deg at 82% -8%,
+      transparent 0deg,
+      rgba(214, 255, 63, 0.08) 10deg,
+      transparent 22deg,
+      transparent 200deg,
+      rgba(255, 121, 0, 0.05) 214deg,
+      transparent 230deg
+    );
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: beamSweep 18s ease-in-out infinite alternate;
+  transform-origin: 50% 0%;
+}
+
+.site-atmosphere-orbs {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 18rem at 12% 22%, rgba(214, 255, 63, 0.12), transparent 70%),
+    radial-gradient(circle 14rem at 88% 28%, rgba(228, 181, 74, 0.11), transparent 68%),
+    radial-gradient(circle 22rem at 70% 78%, rgba(214, 255, 63, 0.06), transparent 70%),
+    radial-gradient(circle 16rem at 24% 84%, rgba(255, 121, 0, 0.05), transparent 68%);
+  filter: blur(8px);
+  animation: orbDrift 22s ease-in-out infinite alternate;
+}
+
+.site-atmosphere-smoke {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 35% at 50% 100%, rgba(244, 239, 230, 0.05), transparent 70%),
+    radial-gradient(ellipse 40% 25% at 20% 90%, rgba(214, 255, 63, 0.04), transparent 70%),
+    radial-gradient(ellipse 45% 28% at 80% 92%, rgba(228, 181, 74, 0.04), transparent 70%);
+  animation: smokeRise 26s ease-in-out infinite alternate;
+}
+
+.site-atmosphere-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(244, 239, 230, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 239, 230, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, black 20%, transparent 75%);
+  opacity: 0.35;
+}
+
+.site-atmosphere-grain {
+  position: absolute;
+  inset: -20%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+  animation: grainShift 0.9s steps(3) infinite;
+}
+
+.site-atmosphere-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 85% 75% at 50% 45%, transparent 35%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, transparent 18%, transparent 72%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.site-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+}
+
+@keyframes beamSweep {
+  0% {
+    transform: rotate(-2deg) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(2.5deg) scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes orbDrift {
+  0% {
+    transform: translate3d(-1.5%, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(2%, -1.5%, 0) scale(1.08);
+  }
+}
+
+@keyframes smokeRise {
+  0% {
+    transform: translateY(2%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-3%) scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes grainShift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-1.5%, 1%);
+  }
+  100% {
+    transform: translate(1%, -1%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-atmosphere-beams,
+  .site-atmosphere-orbs,
+  .site-atmosphere-smoke,
+  .site-atmosphere-grain {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 699px) {
+  .site-atmosphere-grain {
+    animation: none;
+    opacity: 0.09;
+  }
+
+  .site-atmosphere-beams,
+  .site-atmosphere-orbs {
+    animation-duration: 28s;
+  }
+
+  .site-atmosphere-grid {
+    background-size: 56px 56px;
+    opacity: 0.22;
+  }
 }
 
 a {
@@ -65,8 +237,8 @@ video {
 .site-header {
   border-bottom: 1px solid var(--line);
   margin-bottom: 0;
-  background: rgba(12, 11, 10, 0.72);
-  backdrop-filter: blur(10px);
+  background: rgba(8, 7, 6, 0.55);
+  backdrop-filter: blur(16px) saturate(1.2);
   position: sticky;
   top: 0;
   z-index: 20;

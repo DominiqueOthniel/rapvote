@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Manrope } from "next/font/google";
+import { SiteAtmosphere } from "@/components/SiteAtmosphere";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
@@ -27,9 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${display.variable} ${body.variable} h-full`}>
-      <body className="min-h-full antialiased">
-        <SiteHeader />
-        {children}
+      <body className="min-h-full antialiased site-body">
+        <SiteAtmosphere />
+        <div className="site-content">
+          <SiteHeader />
+          {children}
+        </div>
       </body>
     </html>
   );
