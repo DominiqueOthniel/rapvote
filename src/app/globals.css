@@ -2098,10 +2098,34 @@ select:focus-visible {
   font-size: 1.25rem;
 }
 
-.track-listen {
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.track-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  margin: 0 0 0.85rem;
+}
+
+.track-stat {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.track-stat strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.track-listen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.track-like.is-liked {
+  color: #111;
+  background: var(--lime);
+  border-color: var(--lime);
 }
 
 .track-listen-grid {

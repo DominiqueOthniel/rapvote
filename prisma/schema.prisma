@@ -207,20 +207,24 @@ model Fan {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   comments  TrackComment[]
+  likes     TrackLike[]
 }
 
 model PhaseTrack {
-  id          String         @id @default(cuid())
-  candidateId String
-  phaseId     String
-  title       String?
-  audioUrl    String
-  lyrics      String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  candidate   Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  phase       Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  comments    TrackComment[]
+  id            String         @id @default(cuid())
+  candidateId   String
+  phaseId       String
+  title         String?
+  audioUrl      String
+  lyrics        String?
+  playCount     Int            @default(0)
+  downloadCount Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  candidate     Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  phase         Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  comments      TrackComment[]
+  likes         TrackLike[]
 
   @@unique([candidateId, phaseId])
 }
@@ -234,4 +238,15 @@ model TrackComment {
   createdAt     DateTime   @default(now())
   track         PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
   fan           Fan        @relation(fields: [fanId], references: [id], onDelete: Cascade)
+}
+
+model TrackLike {
+  id        String     @id @default(cuid())
+  trackId   String
+  fanId     String
+  createdAt DateTime   @default(now())
+  track     PhaseTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  fan       Fan        @relation(fields: [fanId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, fanId])
 }

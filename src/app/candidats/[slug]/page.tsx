@@ -52,6 +52,10 @@ export default async function CandidatePage({ params }: Props) {
         orderBy: { createdAt: "desc" },
         include: { fan: { select: { name: true } } },
       },
+      likes: fan
+        ? { where: { fanId: fan.id }, select: { id: true } }
+        : false,
+      _count: { select: { likes: true } },
     },
     orderBy: { phase: { number: "asc" } },
   });
@@ -135,10 +139,18 @@ export default async function CandidatePage({ params }: Props) {
             {tracks.map((track) => (
               <article key={track.id} className="track-card">
                 <TrackListenCard
+                  trackId={track.id}
                   title={track.title ?? `Son phase ${track.phase.number}`}
                   phaseLabel={`E${track.phase.number} · ${track.phase.theme ?? track.phase.title}`}
                   audioUrl={track.audioUrl}
                   lyrics={track.lyrics}
+                  playCount={track.playCount}
+                  downloadCount={track.downloadCount}
+                  likeCount={track._count.likes}
+                  likedByFan={
+                    Array.isArray(track.likes) ? track.likes.length > 0 : false
+                  }
+                  fanLoggedIn={Boolean(fan)}
                 />
                 <TrackComments
                   trackId={track.id}
