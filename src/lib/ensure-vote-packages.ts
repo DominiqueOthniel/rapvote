@@ -7,7 +7,7 @@ import {
 
 /** Garantit une liste courte de packs uniques, sans doublons. */
 export async function ensureSeasonVotePackages(seasonId: string) {
-  const wanted = new Set(DEFAULT_VOTE_PACKS.map((p) => p.votesCount));
+  const wanted = new Set<number>(DEFAULT_VOTE_PACKS.map((p) => p.votesCount));
   const existing = await prisma.votePackage.findMany({
     where: { seasonId },
     orderBy: { createdAt: "asc" },
