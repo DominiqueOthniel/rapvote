@@ -1,9 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatVotes } from "@/lib/money";
 import { HeartLikeButton } from "@/components/HeartLikeButton";
+import {
+  useFanPlayerOptional,
+  type FanPlayerTrack,
+} from "@/components/FanPlayerProvider";
 
 type Props = {
   trackId: string;
@@ -16,6 +20,9 @@ type Props = {
   likeCount: number;
   likedByFan: boolean;
   fanLoggedIn: boolean;
+  candidateSlug: string;
+  candidateName: string;
+  candidatePhotoUrl: string | null;
 };
 
 export function TrackListenCard({
@@ -29,13 +36,13 @@ export function TrackListenCard({
   likeCount: initialLikes,
   likedByFan,
   fanLoggedIn,
+  candidateSlug,
+  candidateName,
+  candidatePhotoUrl,
 }: Props) {
   const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const countedPlay = useRef(false);
-  const listenedSeconds = useRef(0);
-  const lastCurrentTime = useRef(0);
-  const [plays, setPlays] = useState(initialPlays);
+  const player = useFanPlayerOptional();
+  const [plays] = useState(initialPlays);
   const [downloads, setDownloads] = useState(initialDownloads);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(likedByFan);
@@ -44,60 +51,27 @@ export function TrackListenCard({
   const [likeHint, setLikeHint] = useState<string | null>(null);
 
   const hasLyrics = Boolean(lyrics?.trim());
+  const displayTitle = title.trim() || `Son · ${candidateName}`;
+  const isActive = player?.track?.id === trackId;
+  const isPlaying = Boolean(isActive && player?.isPlaying);
 
-  async function registerPlay() {
-    if (countedPlay.current) return;
-    const key = `ftc-play-${trackId}`;
-    if (typeof window !== "undefined" && sessionStorage.getItem(key)) {
-      countedPlay.current = true;
+  function onPlayClick() {
+    if (!player) return;
+    const next: FanPlayerTrack = {
+      id: trackId,
+      title: displayTitle,
+      audioUrl,
+      candidateSlug,
+      candidateName,
+      candidatePhotoUrl,
+      likeCount: likes,
+      likedByFan: liked,
+    };
+    if (isActive) {
+      player.toggle();
       return;
     }
-    countedPlay.current = true;
-    try {
-      sessionStorage.setItem(key, "1");
-    } catch {
-      // ignore
-    }
-    try {
-      const res = await fetch("/api/tracks/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trackId }),
-      });
-      const data = await res.json();
-      if (res.ok && typeof data.playCount === "number") {
-        setPlays(data.playCount);
-      }
-    } catch {
-      // ignore network errors for analytics
-    }
-  }
-
-  function onAudioTimeUpdate() {
-    if (countedPlay.current) return;
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const duration = audio.duration;
-    if (!Number.isFinite(duration) || duration <= 0) return;
-
-    const current = audio.currentTime;
-    const delta = current - lastCurrentTime.current;
-    // Compte seulement le temps réellement écouté (ignore les sauts de seek).
-    if (delta > 0 && delta < 1.5) {
-      listenedSeconds.current += delta;
-    }
-    lastCurrentTime.current = current;
-
-    if (listenedSeconds.current >= duration * 0.5) {
-      void registerPlay();
-    }
-  }
-
-  function onAudioSeeked() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    lastCurrentTime.current = audio.currentTime;
+    player.playTrack(next);
   }
 
   async function onDownload() {
@@ -106,13 +80,12 @@ export function TrackListenCard({
     setLikeHint(null);
 
     try {
-      // 1) Tente un vrai fichier côté navigateur (blob) pour forcer le download.
       const fileRes = await fetch(audioUrl, { mode: "cors" });
       if (fileRes.ok) {
         const blob = await fileRes.blob();
         const objectUrl = URL.createObjectURL(blob);
         const filename =
-          `${title
+          `${displayTitle
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
             .replace(/[^\w\s.-]+/g, "")
@@ -128,7 +101,6 @@ export function TrackListenCard({
         link.remove();
         URL.revokeObjectURL(objectUrl);
 
-        // Compte après succès réel.
         const countRes = await fetch(
           `/api/tracks/download?trackId=${encodeURIComponent(trackId)}&countOnly=1`,
         );
@@ -145,7 +117,6 @@ export function TrackListenCard({
         return;
       }
 
-      // 2) Fallback serveur (signed URL / proxy).
       const link = document.createElement("a");
       link.href = `/api/tracks/download?trackId=${encodeURIComponent(trackId)}`;
       link.rel = "noopener";
@@ -154,7 +125,6 @@ export function TrackListenCard({
       link.remove();
       setDownloads((n) => n + 1);
     } catch {
-      // Dernier recours: endpoint serveur.
       try {
         window.location.href = `/api/tracks/download?trackId=${encodeURIComponent(trackId)}`;
         setDownloads((n) => n + 1);
@@ -199,7 +169,7 @@ export function TrackListenCard({
     <div className="track-listen">
       <header className="track-card-head">
         <p className="muted">{phaseLabel}</p>
-        <h3>{title}</h3>
+        <h3>{displayTitle}</h3>
       </header>
 
       <div className="track-stats-row">
@@ -217,17 +187,26 @@ export function TrackListenCard({
       <div className={hasLyrics ? "track-listen-grid" : "track-listen-solo"}>
         <div className="track-listen-player">
           <p className="track-listen-kicker">Écoute</p>
-          <audio
-            ref={audioRef}
-            controls
-            preload="none"
-            src={audioUrl}
-            className="phase-audio-player track-listen-audio"
-            onTimeUpdate={onAudioTimeUpdate}
-            onSeeked={onAudioSeeked}
-          >
-            Lecteur audio
-          </audio>
+          {player ? (
+            <button
+              type="button"
+              className={`btn-primary track-listen-play-btn${
+                isPlaying ? " is-playing" : ""
+              }`}
+              onClick={onPlayClick}
+            >
+              {isPlaying ? "Pause" : isActive ? "Reprendre" : "Écouter"}
+            </button>
+          ) : (
+            <audio
+              controls
+              preload="none"
+              src={audioUrl}
+              className="phase-audio-player track-listen-audio"
+            >
+              Lecteur audio
+            </audio>
+          )}
 
           <div className="track-listen-actions">
             <HeartLikeButton

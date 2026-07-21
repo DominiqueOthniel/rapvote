@@ -112,6 +112,44 @@ export async function getPhaseEntries(phaseId: string) {
   return [...active, ...eliminated];
 }
 
+export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null) {
+  return prisma.phaseTrack.findMany({
+    where: {
+      phaseId,
+      candidate: {
+        entries: {
+          some: {
+            phaseId,
+            status: "active",
+          },
+        },
+      },
+    },
+    include: {
+      candidate: {
+        select: {
+          id: true,
+          slug: true,
+          stageName: true,
+          photoUrl: true,
+          city: true,
+        },
+      },
+      phase: {
+        select: { number: true, title: true, theme: true },
+      },
+      likes: fanId
+        ? { where: { fanId }, select: { id: true } }
+        : false,
+      _count: { select: { likes: true } },
+    },
+    orderBy: [
+      { candidate: { stageName: "asc" } },
+      { createdAt: "desc" },
+    ],
+  });
+}
+
 export function slugify(value: string) {
   return value
     .normalize("NFD")

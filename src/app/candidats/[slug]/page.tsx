@@ -149,6 +149,9 @@ export default async function CandidatePage({ params }: Props) {
                     Array.isArray(track.likes) ? track.likes.length > 0 : false
                   }
                   fanLoggedIn={Boolean(fan)}
+                  candidateSlug={candidate.slug}
+                  candidateName={candidate.stageName}
+                  candidatePhotoUrl={candidate.photoUrl}
                 />
                 <TrackComments
                   trackId={track.id}

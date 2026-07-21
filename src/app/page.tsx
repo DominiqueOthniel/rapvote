@@ -1,17 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArtistCards } from "@/components/ArtistCards";
-import { RankingList } from "@/components/RankingList";
-import { HeroMusicFloats } from "@/components/HeroMusicFloats";
+import { FanLoginForm } from "@/components/FanLoginForm";
+import { FanLogoutButton } from "@/components/FanLogoutButton";
+import { SonsFeed } from "@/components/SonsFeed";
+import { getFanSession } from "@/lib/auth";
 import {
   getActiveSeason,
   getCurrentPhase,
-  getPhaseEntries,
-  getPhaseRanking,
+  getPhaseTracksFeed,
 } from "@/lib/competition";
 import { getEpisodeByNumber } from "@/lib/parcours";
-import { WHATSAPP_GROUP_URL } from "@/lib/community";
-import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -23,26 +20,21 @@ function SetupMessage({
   detail?: string;
 }) {
   return (
-    <main className="shell">
-      <div className="hero">
-        <p className="hero-kicker">ForTheCulture · New Star Punch</p>
-        <h1>Configuration requise</h1>
-        <p>{message}</p>
-        {detail ? (
-          <p
-            className="muted"
-            style={{ marginTop: "1rem", wordBreak: "break-word" }}
-          >
-            Détail technique : {detail}
-          </p>
-        ) : null}
-        <p className="muted" style={{ marginTop: "1rem" }}>
-          Diagnostic :{" "}
-          <Link href="/api/health/db" className="btn-ghost">
-            /api/health/db
-          </Link>
+    <main className="shell section">
+      <p className="hero-kicker">ForTheCulture · New Star Punch</p>
+      <h1 className="page-title">Configuration requise</h1>
+      <p>{message}</p>
+      {detail ? (
+        <p className="muted" style={{ marginTop: "1rem", wordBreak: "break-word" }}>
+          Détail technique : {detail}
         </p>
-      </div>
+      ) : null}
+      <p className="muted" style={{ marginTop: "1rem" }}>
+        Diagnostic :{" "}
+        <Link href="/api/health/db" className="btn-ghost">
+          /api/health/db
+        </Link>
+      </p>
     </main>
   );
 }
@@ -64,129 +56,80 @@ export default async function HomePage() {
 
   if (!season) {
     return (
-      <main className="shell">
-        <div className="hero">
-          <p className="hero-kicker">ForTheCulture Cameroun</p>
-          <h1>La scène arrive</h1>
-          <p>Aucune saison active pour le moment. Reviens bientôt.</p>
+      <main className="shell section">
+        <p className="hero-kicker">ForTheCulture Cameroun</p>
+        <h1 className="page-title">La scène arrive</h1>
+        <p className="muted">Aucune saison active pour le moment.</p>
+      </main>
+    );
+  }
+
+  const fan = await getFanSession();
+  const phase = await getCurrentPhase(season.id);
+  const episode = phase ? getEpisodeByNumber(phase.number) : null;
+  const phaseLabel = episode
+    ? `${episode.code} · ${episode.title}`
+    : phase
+      ? `Phase ${phase.number} · ${phase.theme ?? phase.title}`
+      : "Phase";
+
+  if (!fan) {
+    return (
+      <main className="shell section sons-gate">
+        <div className="sons-gate-card admin-card">
+          <p className="muted">{phaseLabel}</p>
+          <h1 className="page-title">Écoute</h1>
+          <FanLoginForm />
+          <p className="muted" style={{ marginTop: "1.25rem" }}>
+            <Link href="/inscription" className="btn-ghost">
+              Inscription artiste
+            </Link>
+            {" · "}
+            <Link href="/candidats" className="btn-ghost">
+              Candidats
+            </Link>
+          </p>
         </div>
       </main>
     );
   }
 
-  const phase = await getCurrentPhase(season.id);
-  const ranking = phase ? await getPhaseRanking(phase.id) : [];
-  const entries = phase ? await getPhaseEntries(phase.id) : [];
-  const items = ranking.slice(0, 5).map((entry, index) => ({
-    rank: index + 1,
-    slug: entry.candidate.slug,
-    stageName: entry.candidate.stageName,
-    city: entry.candidate.city,
-    votesCount: entry.votesCount,
+  const rawTracks = phase
+    ? await getPhaseTracksFeed(phase.id, fan.id)
+    : [];
+
+  const tracks = rawTracks.map((t) => ({
+    id: t.id,
+    title: t.title?.trim() || `Son · ${t.candidate.stageName}`,
+    audioUrl: t.audioUrl,
+    playCount: t.playCount,
+    likeCount: t._count.likes,
+    likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
+    candidate: {
+      slug: t.candidate.slug,
+      stageName: t.candidate.stageName,
+      photoUrl: t.candidate.photoUrl,
+    },
+    phaseLabel,
   }));
-
-  const candidateIds = entries.map((entry) => entry.candidate.id);
-  const trackGroups =
-    candidateIds.length > 0
-      ? await prisma.phaseTrack.groupBy({
-          by: ["candidateId"],
-          where: { candidateId: { in: candidateIds } },
-          _count: { _all: true },
-        })
-      : [];
-  const trackCountById = Object.fromEntries(
-    trackGroups.map((g) => [g.candidateId, g._count._all]),
-  );
-
-  let activeRank = 0;
-  const artists = entries.map((entry) => ({
-    slug: entry.candidate.slug,
-    stageName: entry.candidate.stageName,
-    city: entry.candidate.city,
-    bio: entry.candidate.bio,
-    photoUrl: entry.candidate.photoUrl,
-    votesCount: entry.votesCount,
-    trackCount: trackCountById[entry.candidate.id] ?? 0,
-    rank: entry.status === "active" ? ++activeRank : undefined,
-    eliminated: entry.status === "eliminated",
-  }));
-
-  const episode = phase ? getEpisodeByNumber(phase.number) : null;
 
   return (
-    <main>
-      <section className="hero hero-visual">
-        <div className="hero-stage" aria-hidden="true">
-          <Image
-            src="/hero/stage.png"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="hero-stage-img"
-          />
-          <div className="hero-stage-mask" />
+    <main className="shell section sons-home">
+      <div className="sons-home-head">
+        <div>
+          <p className="muted">{phaseLabel}</p>
+          <h1 className="page-title">Sons</h1>
+          <p className="muted">Salut {fan.name}</p>
         </div>
-        <HeroMusicFloats />
-        <div className="hero-copy">
-          <p className="hero-kicker">Rap · Cameroun · New Star Punch</p>
-          <h1 className="hero-title">
-            <span>For The</span>
-            <span>Culture</span>
-          </h1>
-          <p>
-            {season.tagline ??
-              "Du freestyle à l'œuvre ultime. Jury, public, et un seul champion."}
-          </p>
-          <div className="hero-actions">
-            <Link className="btn-primary" href="#artistes">
-              Voir les artistes
-            </Link>
-            <Link className="btn-secondary btn-on-media" href="/phases">
-              Le parcours
-            </Link>
-            <a
-              className="btn-whatsapp btn-whatsapp-hero"
-              href={WHATSAPP_GROUP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Groupe WhatsApp
-            </a>
-          </div>
+        <div className="sons-home-actions">
+          <Link className="btn-secondary" href="/candidats">
+            Candidats
+          </Link>
+          <FanLogoutButton />
         </div>
-      </section>
-
-      <div className="shell">
-        <section id="artistes" className="section">
-          <div className="section-head">
-            <div>
-              <p className="muted">
-                {episode
-                  ? `${episode.code} · ${episode.title}`
-                  : phase
-                    ? `Phase ${phase.number} · ${phase.theme ?? phase.title}`
-                    : "Candidats"}
-              </p>
-              <h2>Les artistes</h2>
-            </div>
-          </div>
-          <ArtistCards artists={artists} />
-        </section>
-
-        <section className="section">
-          <div className="section-head">
-            <div>
-              <p className="muted">Temps réel</p>
-              <h2>Top live</h2>
-            </div>
-            <Link className="btn-ghost" href="/classement">
-              Classement complet
-            </Link>
-          </div>
-          <RankingList items={items} />
-        </section>
       </div>
+
+      <SonsFeed tracks={tracks} fanLoggedIn />
     </main>
   );
 }

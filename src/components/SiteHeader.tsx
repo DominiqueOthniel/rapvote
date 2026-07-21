@@ -9,10 +9,11 @@ import {
 } from "@/lib/community";
 
 const links = [
-  { href: "/", label: "Accueil" },
-  { href: "/inscription", label: "Inscription artiste" },
+  { href: "/", label: "Sons" },
+  { href: "/candidats", label: "Candidats" },
   { href: "/classement", label: "Classement" },
   { href: "/phases", label: "Phases" },
+  { href: "/inscription", label: "Inscription artiste" },
 ];
 
 export function SiteHeader() {
@@ -20,7 +21,8 @@ export function SiteHeader() {
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/jury") ||
-    pathname.startsWith("/candidat")
+    pathname === "/candidat" ||
+    pathname.startsWith("/candidat/")
   ) {
     return null;
   }
@@ -40,15 +42,21 @@ export function SiteHeader() {
           <span className="brand-name">For The Culture</span>
         </Link>
         <nav className="nav" aria-label="Navigation principale">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={pathname === link.href ? "nav-link active" : "nav-link"}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const active =
+              link.href === "/"
+                ? pathname === "/"
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={active ? "nav-link active" : "nav-link"}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <a
             className="nav-link nav-whatsapp"
             href={WHATSAPP_GROUP_URL}

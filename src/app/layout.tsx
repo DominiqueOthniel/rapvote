@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Manrope } from "next/font/google";
+import { FanPlayerShell } from "@/components/FanPlayerShell";
 import { SiteAtmosphere } from "@/components/SiteAtmosphere";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -31,11 +32,13 @@ export default function RootLayout({
     <html lang="fr" className={`${display.variable} ${body.variable} h-full`}>
       <body className="min-h-full antialiased site-body">
         <SiteAtmosphere />
-        <div className="site-content">
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </div>
+        <FanPlayerShell>
+          <div className="site-content">
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+          </div>
+        </FanPlayerShell>
       </body>
     </html>
   );

@@ -1,48 +1,29 @@
-import { ArtistCards } from "@/components/ArtistCards";
+import Link from "next/link";
+import { RankingList } from "@/components/RankingList";
 import {
   getActiveSeason,
   getCurrentPhase,
-  getPhaseEntries,
+  getPhaseRanking,
 } from "@/lib/competition";
 import { reconcilePendingVotes } from "@/lib/reconcile-votes";
-import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClassementPage() {
-  // Filet de sécurité: crédite les votes déjà payés chez Notch.
   await reconcilePendingVotes(12).catch((error) => {
     console.error("classement reconcile", error);
   });
 
   const season = await getActiveSeason();
   const phase = season ? await getCurrentPhase(season.id) : null;
-  const ranking = phase ? await getPhaseEntries(phase.id) : [];
+  const ranking = phase ? await getPhaseRanking(phase.id) : [];
 
-  const candidateIds = ranking.map((entry) => entry.candidate.id);
-  const trackGroups =
-    candidateIds.length > 0
-      ? await prisma.phaseTrack.groupBy({
-          by: ["candidateId"],
-          where: { candidateId: { in: candidateIds } },
-          _count: { _all: true },
-        })
-      : [];
-  const trackCountById = Object.fromEntries(
-    trackGroups.map((g) => [g.candidateId, g._count._all]),
-  );
-
-  let activeRank = 0;
-  const artists = ranking.map((entry) => ({
-    rank: entry.status === "active" ? ++activeRank : undefined,
+  const items = ranking.map((entry, index) => ({
+    rank: index + 1,
     slug: entry.candidate.slug,
     stageName: entry.candidate.stageName,
     city: entry.candidate.city,
-    bio: entry.candidate.bio,
-    photoUrl: entry.candidate.photoUrl,
     votesCount: entry.votesCount,
-    trackCount: trackCountById[entry.candidate.id] ?? 0,
-    eliminated: entry.status === "eliminated",
   }));
 
   return (
@@ -56,8 +37,11 @@ export default async function ClassementPage() {
           </p>
           <h1 className="page-title">Classement</h1>
         </div>
+        <Link className="btn-secondary" href="/candidats">
+          Voir les candidats
+        </Link>
       </div>
-      <ArtistCards artists={artists} />
+      <RankingList items={items} />
     </main>
   );
 }
