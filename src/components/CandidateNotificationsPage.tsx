@@ -109,10 +109,11 @@ export function CandidateNotificationsPage() {
       <div className="notif-page-head">
         <div>
           <h1>Notifications</h1>
-          <p className="muted">
-            Likes, commentaires et téléchargements sur tes sons.
-            {unreadCount > 0 ? ` ${unreadCount} non lue${unreadCount > 1 ? "s" : ""}.` : ""}
-          </p>
+          {unreadCount > 0 ? (
+            <p className="muted">
+              {unreadCount} non lue{unreadCount > 1 ? "s" : ""}
+            </p>
+          ) : null}
         </div>
         {unreadCount > 0 ? (
           <button
@@ -131,8 +132,7 @@ export function CandidateNotificationsPage() {
         <p className="muted">Chargement…</p>
       ) : items.length === 0 ? (
         <p className="muted">
-          Rien pour l&apos;instant. Dès qu&apos;un fan like, commente ou
-          télécharge, tu le verras ici.
+          Aucune notification pour l&apos;instant.
         </p>
       ) : (
         <ul className="notif-page-list">

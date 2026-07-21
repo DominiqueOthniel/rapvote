@@ -168,7 +168,7 @@ export function TrackListenCard({
 
   async function toggleLike() {
     if (!fanLoggedIn) {
-      setLikeHint("Connecte-toi en fan juste en bas pour liker.");
+      setLikeHint("Connecte-toi pour liker.");
       return;
     }
     setBusyLike(true);
@@ -249,16 +249,6 @@ export function TrackListenCard({
           </div>
 
           {likeHint ? <p className="muted track-listen-tip">{likeHint}</p> : null}
-
-          {hasLyrics ? (
-            <p className="muted track-listen-tip">
-              Lance le son, puis scroll les lyrics à droite.
-            </p>
-          ) : (
-            <p className="muted track-listen-tip">
-              Pas encore de lyrics pour ce son.
-            </p>
-          )}
         </div>
 
         {hasLyrics ? (

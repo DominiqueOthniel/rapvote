@@ -323,9 +323,6 @@ export default async function CandidateDashboardPage() {
 
         <section className="admin-card candidate-voters">
           <h2 className="admin-form-title">Qui a voté pour toi</h2>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Noms / pseudos des fans après paiement confirmé.
-          </p>
           {paidVotes.length === 0 ? (
             <p className="muted">Aucun vote confirmé pour l&apos;instant.</p>
           ) : (
@@ -443,10 +440,6 @@ export default async function CandidateDashboardPage() {
 
       <section className="admin-card" style={{ marginTop: "1.5rem" }}>
         <h2 className="admin-form-title">Sons par phase</h2>
-        <p className="muted">
-          Un son par étape, avec lyrics optionnelles. Visible sur ta page
-          publique pour lire et écouter en même temps.
-        </p>
 
         <div className="phase-tracks-admin">
           {phases.length === 0 ? (

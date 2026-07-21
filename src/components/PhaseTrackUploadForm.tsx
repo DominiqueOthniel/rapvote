@@ -158,9 +158,6 @@ export function PhaseTrackUploadForm({
           maxLength={12000}
           placeholder={"Colle ici les paroles...\n\nCouplet 1\n...\nRefrain"}
         />
-        <span className="field-hint">
-          Texte libre · visible à côté du player pour lire en écoutant
-        </span>
       </label>
       <label className="field">
         <span>Fichier audio {hasTrack ? "(optionnel pour remplacer)" : ""}</span>

@@ -199,9 +199,6 @@ export function VoteForm({ candidateId, candidateName, phaseId, packages }: Prop
           required
           autoComplete="nickname"
         />
-        <span className="field-hint">
-          Visible par l&apos;artiste pour savoir qui a voté
-        </span>
       </label>
 
       <label className="field">

@@ -41,9 +41,6 @@ export function FanLoginForm({ onLoggedIn }: Props) {
 
   return (
     <form className="fan-login-form" onSubmit={onSubmit}>
-      <p className="muted">
-        Connexion rapide pour commenter : nom + numéro, sans mot de passe.
-      </p>
       <label className="field">
         <span>Ton prénom / pseudo</span>
         <input

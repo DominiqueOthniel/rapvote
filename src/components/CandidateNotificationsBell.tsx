@@ -181,8 +181,7 @@ export function CandidateNotificationsBell() {
               <p className="muted notif-empty">Chargement…</p>
             ) : items.length === 0 ? (
               <p className="muted notif-empty">
-                Aucune notif pour l&apos;instant. Les likes, commentaires et
-                téléchargements apparaîtront ici.
+                Aucune notification pour l&apos;instant.
               </p>
             ) : (
               items.slice(0, 8).map((n) => (
