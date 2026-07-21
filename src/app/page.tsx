@@ -6,7 +6,7 @@ import { getFanSession } from "@/lib/auth";
 import {
   getActiveSeason,
   getCurrentPhase,
-  getPhaseTracksFeed,
+  getSeasonTracksFeed,
 } from "@/lib/competition";
 import { getEpisodeByNumber } from "@/lib/parcours";
 
@@ -39,6 +39,16 @@ function SetupMessage({
   );
 }
 
+function phaseChipLabel(phase: {
+  number: number;
+  title: string;
+  theme: string | null;
+}) {
+  const episode = getEpisodeByNumber(phase.number);
+  if (episode) return `${episode.code} · ${episode.title}`;
+  return `E${phase.number} · ${phase.theme ?? phase.title}`;
+}
+
 export default async function HomePage() {
   let season;
   try {
@@ -65,19 +75,22 @@ export default async function HomePage() {
   }
 
   const fan = await getFanSession();
-  const phase = await getCurrentPhase(season.id);
-  const episode = phase ? getEpisodeByNumber(phase.number) : null;
-  const phaseLabel = episode
-    ? `${episode.code} · ${episode.title}`
-    : phase
-      ? `Phase ${phase.number} · ${phase.theme ?? phase.title}`
-      : "Phase";
+  const currentPhase = await getCurrentPhase(season.id);
+  const currentEpisode = currentPhase
+    ? getEpisodeByNumber(currentPhase.number)
+    : null;
+  const seasonLabel = season.title;
+  const currentLabel = currentEpisode
+    ? `${currentEpisode.code} · ${currentEpisode.title}`
+    : currentPhase
+      ? `Phase ${currentPhase.number} · ${currentPhase.theme ?? currentPhase.title}`
+      : seasonLabel;
 
   if (!fan) {
     return (
       <main className="shell section sons-gate">
         <div className="sons-gate-card admin-card">
-          <p className="muted">{phaseLabel}</p>
+          <p className="muted">{currentLabel}</p>
           <h1 className="page-title">Écoute</h1>
           <FanLoginForm />
           <p className="muted" style={{ marginTop: "1.25rem" }}>
@@ -94,9 +107,14 @@ export default async function HomePage() {
     );
   }
 
-  const rawTracks = phase
-    ? await getPhaseTracksFeed(phase.id, fan.id)
-    : [];
+  const rawTracks = await getSeasonTracksFeed(season.id, fan.id);
+  const phasesWithTracks = new Set(rawTracks.map((t) => t.phaseId));
+  const phaseOptions = season.phases
+    .filter((p) => phasesWithTracks.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: phaseChipLabel(p),
+    }));
 
   const tracks = rawTracks.map((t) => ({
     id: t.id,
@@ -105,19 +123,20 @@ export default async function HomePage() {
     playCount: t.playCount,
     likeCount: t._count.likes,
     likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
+    phaseId: t.phaseId,
+    phaseLabel: phaseChipLabel(t.phase),
     candidate: {
       slug: t.candidate.slug,
       stageName: t.candidate.stageName,
       photoUrl: t.candidate.photoUrl,
     },
-    phaseLabel,
   }));
 
   return (
     <main className="shell section sons-home">
       <div className="sons-home-head">
         <div>
-          <p className="muted">{phaseLabel}</p>
+          <p className="muted">{seasonLabel}</p>
           <h1 className="page-title">Sons</h1>
           <p className="muted">Salut {fan.name}</p>
         </div>
@@ -129,7 +148,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <SonsFeed tracks={tracks} fanLoggedIn />
+      <SonsFeed tracks={tracks} phases={phaseOptions} fanLoggedIn />
     </main>
   );
 }

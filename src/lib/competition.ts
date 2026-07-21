@@ -112,6 +112,40 @@ export async function getPhaseEntries(phaseId: string) {
   return [...active, ...eliminated];
 }
 
+export async function getSeasonTracksFeed(
+  seasonId: string,
+  fanId?: string | null,
+) {
+  return prisma.phaseTrack.findMany({
+    where: {
+      phase: { seasonId },
+    },
+    include: {
+      candidate: {
+        select: {
+          id: true,
+          slug: true,
+          stageName: true,
+          photoUrl: true,
+          city: true,
+        },
+      },
+      phase: {
+        select: { id: true, number: true, title: true, theme: true },
+      },
+      likes: fanId
+        ? { where: { fanId }, select: { id: true } }
+        : false,
+      _count: { select: { likes: true } },
+    },
+    orderBy: [
+      { phase: { number: "desc" } },
+      { candidate: { stageName: "asc" } },
+      { createdAt: "desc" },
+    ],
+  });
+}
+
 export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null) {
   return prisma.phaseTrack.findMany({
     where: {
@@ -136,7 +170,7 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
         },
       },
       phase: {
-        select: { number: true, title: true, theme: true },
+        select: { id: true, number: true, title: true, theme: true },
       },
       likes: fanId
         ? { where: { fanId }, select: { id: true } }

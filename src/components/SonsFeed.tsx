@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HeartLikeButton } from "@/components/HeartLikeButton";
 import {
@@ -18,16 +18,23 @@ export type SonsFeedItem = {
   playCount: number;
   likeCount: number;
   likedByFan: boolean;
+  phaseId: string;
+  phaseLabel: string;
   candidate: {
     slug: string;
     stageName: string;
     photoUrl: string | null;
   };
-  phaseLabel: string;
+};
+
+export type SonsPhaseOption = {
+  id: string;
+  label: string;
 };
 
 type Props = {
   tracks: SonsFeedItem[];
+  phases: SonsPhaseOption[];
   fanLoggedIn: boolean;
 };
 
@@ -44,9 +51,10 @@ function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
   };
 }
 
-export function SonsFeed({ tracks, fanLoggedIn }: Props) {
+export function SonsFeed({ tracks, phases, fanLoggedIn }: Props) {
   const router = useRouter();
   const { track, isPlaying, playTrack, toggle } = useFanPlayer();
+  const [phaseFilter, setPhaseFilter] = useState<string>("all");
   const [likes, setLikes] = useState(() =>
     Object.fromEntries(tracks.map((t) => [t.id, t.likeCount])),
   );
@@ -56,7 +64,12 @@ export function SonsFeed({ tracks, fanLoggedIn }: Props) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
 
-  const queue = tracks.map(toPlayerTrack);
+  const visible = useMemo(() => {
+    if (phaseFilter === "all") return tracks;
+    return tracks.filter((t) => t.phaseId === phaseFilter);
+  }, [tracks, phaseFilter]);
+
+  const queue = useMemo(() => visible.map(toPlayerTrack), [visible]);
 
   function onRowPlay(item: SonsFeedItem) {
     if (track?.id === item.id) {
@@ -97,104 +110,140 @@ export function SonsFeed({ tracks, fanLoggedIn }: Props) {
     }
   }
 
-  if (tracks.length === 0) {
-    return (
-      <p className="muted">Aucun son publié pour cette phase pour l&apos;instant.</p>
-    );
-  }
-
   return (
     <div className="sons-feed">
-      <div className="sons-feed-head" aria-hidden="true">
-        <span className="sons-col-num">#</span>
-        <span className="sons-col-title">Titre</span>
-        <span className="sons-col-plays">Écoutes</span>
-        <span className="sons-col-like">Like</span>
-      </div>
+      {phases.length > 0 ? (
+        <div className="sons-phase-filters" role="tablist" aria-label="Phases">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={phaseFilter === "all"}
+            className={
+              phaseFilter === "all"
+                ? "sons-phase-chip is-active"
+                : "sons-phase-chip"
+            }
+            onClick={() => setPhaseFilter("all")}
+          >
+            Toutes
+          </button>
+          {phases.map((phase) => (
+            <button
+              key={phase.id}
+              type="button"
+              role="tab"
+              aria-selected={phaseFilter === phase.id}
+              className={
+                phaseFilter === phase.id
+                  ? "sons-phase-chip is-active"
+                  : "sons-phase-chip"
+              }
+              onClick={() => setPhaseFilter(phase.id)}
+            >
+              {phase.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      <ul className="sons-list">
-        {tracks.map((item, index) => {
-          const active = track?.id === item.id;
-          const playing = active && isPlaying;
-          const title =
-            item.title.trim() || `Son · ${item.candidate.stageName}`;
+      {visible.length === 0 ? (
+        <p className="muted">Aucun son pour ce filtre.</p>
+      ) : (
+        <>
+          <div className="sons-feed-head" aria-hidden="true">
+            <span className="sons-col-num">#</span>
+            <span className="sons-col-title">Titre</span>
+            <span className="sons-col-plays">Écoutes</span>
+            <span className="sons-col-like">Like</span>
+          </div>
 
-          return (
-            <li key={item.id}>
-              <div
-                className={`sons-row${active ? " is-active" : ""}${
-                  playing ? " is-playing" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  className="sons-row-play"
-                  onClick={() => onRowPlay(item)}
-                  aria-label={
-                    playing ? `Pause ${title}` : `Écouter ${title}`
-                  }
-                >
-                  <span className="sons-col-num">
-                    {playing ? "❚❚" : active ? "▶" : index + 1}
-                  </span>
-                </button>
+          <ul className="sons-list">
+            {visible.map((item, index) => {
+              const active = track?.id === item.id;
+              const playing = active && isPlaying;
+              const title =
+                item.title.trim() || `Son · ${item.candidate.stageName}`;
 
-                <div className="sons-col-title">
-                  <Link
-                    href={`/candidats/${item.candidate.slug}`}
-                    className="sons-cover"
+              return (
+                <li key={item.id}>
+                  <div
+                    className={`sons-row${active ? " is-active" : ""}${
+                      playing ? " is-playing" : ""
+                    }`}
                   >
-                    {item.candidate.photoUrl ? (
-                      <Image
-                        src={item.candidate.photoUrl}
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="sons-cover-img"
-                      />
-                    ) : (
-                      <span className="sons-cover-fallback">
-                        {item.candidate.stageName.slice(0, 1)}
-                      </span>
-                    )}
-                  </Link>
-                  <div className="sons-title-meta">
                     <button
                       type="button"
-                      className="sons-track-name"
+                      className="sons-row-play"
                       onClick={() => onRowPlay(item)}
+                      aria-label={
+                        playing ? `Pause ${title}` : `Écouter ${title}`
+                      }
                     >
-                      {title}
+                      <span className="sons-col-num">
+                        {playing ? "❚❚" : active ? "▶" : index + 1}
+                      </span>
                     </button>
-                    <Link
-                      href={`/candidats/${item.candidate.slug}`}
-                      className="sons-artist-name"
-                    >
-                      {item.candidate.stageName}
-                    </Link>
-                    <span className="muted sons-phase">{item.phaseLabel}</span>
+
+                    <div className="sons-col-title">
+                      <Link
+                        href={`/candidats/${item.candidate.slug}`}
+                        className="sons-cover"
+                      >
+                        {item.candidate.photoUrl ? (
+                          <Image
+                            src={item.candidate.photoUrl}
+                            alt=""
+                            width={48}
+                            height={48}
+                            className="sons-cover-img"
+                          />
+                        ) : (
+                          <span className="sons-cover-fallback">
+                            {item.candidate.stageName.slice(0, 1)}
+                          </span>
+                        )}
+                      </Link>
+                      <div className="sons-title-meta">
+                        <button
+                          type="button"
+                          className="sons-track-name"
+                          onClick={() => onRowPlay(item)}
+                        >
+                          {title}
+                        </button>
+                        <Link
+                          href={`/candidats/${item.candidate.slug}`}
+                          className="sons-artist-name"
+                        >
+                          {item.candidate.stageName}
+                        </Link>
+                        <span className="muted sons-phase">
+                          {item.phaseLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="sons-col-plays muted">
+                      {formatVotes(item.playCount)}
+                    </span>
+
+                    <div className="sons-col-like">
+                      <HeartLikeButton
+                        liked={Boolean(likedMap[item.id])}
+                        busy={busyId === item.id}
+                        count={likes[item.id] ?? item.likeCount}
+                        onToggle={() => void toggleLike(item)}
+                        labelLiked="Retirer le like"
+                        labelIdle="Liker"
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <span className="sons-col-plays muted">
-                  {formatVotes(item.playCount)}
-                </span>
-
-                <div className="sons-col-like">
-                  <HeartLikeButton
-                    liked={Boolean(likedMap[item.id])}
-                    busy={busyId === item.id}
-                    count={likes[item.id] ?? item.likeCount}
-                    onToggle={() => void toggleLike(item)}
-                    labelLiked="Retirer le like"
-                    labelIdle="Liker"
-                  />
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
       {hint ? <p className="muted track-listen-tip">{hint}</p> : null}
     </div>
