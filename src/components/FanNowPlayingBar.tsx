@@ -64,6 +64,17 @@ export function FanNowPlayingBar() {
     setPanel((current) => (current === next ? null : next));
   }
 
+  function openLibrary() {
+    // Sur la page Sons: bascule l'onglet. Sinon: panneau lecteur.
+    const onHome = window.location.pathname === "/";
+    if (onHome) {
+      window.dispatchEvent(new Event("ftc:open-library"));
+      setPanel(null);
+      return;
+    }
+    togglePanel("library");
+  }
+
   async function toggleSave() {
     if (saveBusy) return;
     setSaveBusy(true);
@@ -90,7 +101,9 @@ export function FanNowPlayingBar() {
       role="region"
       aria-label="Lecteur"
     >
-      {panel === "library" ? <FanLibraryPanel onClose={() => setPanel(null)} /> : null}
+      {panel === "library" ? (
+        <FanLibraryPanel onClose={() => setPanel(null)} />
+      ) : null}
 
       {panel === "lyrics" && hasLyrics ? (
         <div className="fan-now-panel">
@@ -160,31 +173,48 @@ export function FanNowPlayingBar() {
           </Link>
         </div>
 
-        <div className="fan-now-controls">
+        <div className="fan-now-tools">
           <button
             type="button"
-            className={`fan-now-btn${panel === "library" ? " is-on" : ""}`}
-            onClick={() => togglePanel("library")}
-            aria-pressed={panel === "library"}
+            className="fan-now-btn fan-now-tool"
+            onClick={openLibrary}
             aria-label="Ma bibliothèque"
-            title="Mes sons"
+            title="Ma bibliothèque"
           >
-            ≡
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path
+                d="M4 6h16M4 12h16M4 18h10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
           <button
             type="button"
-            className={`fan-now-btn${saved ? " is-on" : ""}`}
+            className={`fan-now-btn fan-now-tool${saved ? " is-on" : ""}`}
             onClick={() => void toggleSave()}
             disabled={saveBusy}
             aria-label={saved ? "Retirer de Mes sons" : "Ajouter à Mes sons"}
             title={saved ? "Dans Mes sons" : "Ajouter à Mes sons"}
           >
-            {saved ? "★" : "☆"}
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path
+                d="M12 17.3l-5.4 3 1.4-6L3.5 9.9l6.1-.5L12 3.8l2.4 5.6 6.1.5-4.5 4.4 1.4 6z"
+                fill={saved ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
           {hasLyrics ? (
             <button
               type="button"
-              className={`fan-now-btn${panel === "lyrics" ? " is-on" : ""}`}
+              className={`fan-now-btn fan-now-tool${
+                panel === "lyrics" ? " is-on" : ""
+              }`}
               onClick={() => togglePanel("lyrics")}
               aria-pressed={panel === "lyrics"}
               aria-label="Lyrics"
@@ -195,13 +225,15 @@ export function FanNowPlayingBar() {
           ) : null}
           <button
             type="button"
-            className={`fan-now-btn${panel === "comments" ? " is-on" : ""}`}
+            className={`fan-now-btn fan-now-tool${
+              panel === "comments" ? " is-on" : ""
+            }`}
             onClick={() => togglePanel("comments")}
             aria-pressed={panel === "comments"}
             aria-label="Commentaires"
             title="Commentaires"
           >
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
               <path
                 d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
                 fill="none"
@@ -211,6 +243,9 @@ export function FanNowPlayingBar() {
               />
             </svg>
           </button>
+        </div>
+
+        <div className="fan-now-transport">
           <button
             type="button"
             className="fan-now-btn"

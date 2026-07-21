@@ -3075,22 +3075,24 @@ select:focus-visible {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "cover meta controls"
+    "cover meta tools"
+    "transport transport transport"
     "progress progress progress";
-  gap: 0.65rem 0.85rem;
+  gap: 0.55rem 0.75rem;
   align-items: center;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0.7rem var(--gutter);
+  padding: 0.65rem var(--gutter) 0.75rem;
 }
 
 .fan-now-cover {
   grid-area: cover;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: #1a1613;
+  flex-shrink: 0;
 }
 
 .fan-now-cover-img {
@@ -3112,19 +3114,19 @@ select:focus-visible {
   grid-area: meta;
   min-width: 0;
   display: grid;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 
 .fan-now-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .fan-now-artist {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3134,32 +3136,53 @@ select:focus-visible {
   color: var(--ink);
 }
 
-.fan-now-controls {
-  grid-area: controls;
+.fan-now-tools {
+  grid-area: tools;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.fan-now-transport {
+  grid-area: transport;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
 }
 
 .fan-now-btn {
   border: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.15rem;
+  height: 2.15rem;
   border-radius: 999px;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.fan-now-tool {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.78rem;
+  color: rgba(244, 239, 230, 0.72);
 }
 
 .fan-now-play {
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
   background: var(--lime);
   color: #111;
   border-color: var(--lime);
   font-weight: 800;
+  box-shadow: 0 0 0 3px rgba(214, 255, 63, 0.18);
 }
 
 .fan-now-progress {
@@ -3181,10 +3204,43 @@ select:focus-visible {
   cursor: pointer;
 }
 
-@media (min-width: 800px) {
+.fan-now-btn.is-on {
+  color: var(--lime);
+  border-color: rgba(214, 255, 63, 0.55);
+  background: rgba(214, 255, 63, 0.1);
+}
+
+@media (min-width: 900px) {
   .fan-now-playing-inner {
-    grid-template-columns: auto minmax(140px, 220px) auto minmax(0, 1fr);
-    grid-template-areas: "cover meta controls progress";
+    grid-template-columns:
+      auto minmax(120px, 200px) auto auto minmax(160px, 1fr);
+    grid-template-areas: "cover meta tools transport progress";
+    gap: 0.75rem 1rem;
+  }
+
+  .fan-now-tools {
+    padding-right: 0.35rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .fan-now-transport {
+    justify-content: center;
+    min-width: 8.5rem;
+  }
+
+  .fan-now-cover {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+@media (min-width: 800px) and (max-width: 899px) {
+  .fan-now-playing-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "cover meta tools"
+      "transport transport transport"
+      "progress progress progress";
   }
 }
 
@@ -3451,11 +3507,6 @@ select:focus-visible {
 
 .fan-now-lyrics .synced-lyrics-scroll {
   max-height: min(48vh, 380px);
-}
-
-.fan-now-btn.is-on {
-  border-color: rgba(214, 255, 63, 0.55);
-  color: var(--lime);
 }
 
 @media (min-width: 900px) {
@@ -3913,44 +3964,157 @@ select:focus-visible {
   font-weight: 650;
 }
 
+.fan-lib-home {
+  display: grid;
+  gap: 1rem;
+}
+
+.fan-lib-home-intro {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.fan-lib-home-intro .page-title {
+  margin: 0;
+}
+
 .fan-library-panel {
-  max-height: min(52vh, 26rem);
-}
-
-.fan-library-tabs {
+  max-height: min(70vh, 34rem);
+  overflow: hidden;
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.65rem;
+  flex-direction: column;
 }
 
-.fan-library-tabs .btn-ghost.is-active {
-  color: var(--ink);
+.fan-library-panel .fan-lib {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fan-library-panel .fan-lib-list {
+  overflow: auto;
+  max-height: min(48vh, 22rem);
+}
+
+/* Home tabs + full library */
+.fan-home-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 0 1.15rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.fan-home-tab {
+  border: 0;
+  background: transparent;
+  color: rgba(244, 239, 230, 0.65);
+  padding: 0.55rem 0.95rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.fan-home-tab.is-active {
   background: var(--lime);
+  color: var(--ink);
 }
 
-.fan-library-list {
+.fan-lib {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.fan-lib-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.fan-lib-title-page {
+  margin: 0.15rem 0 0;
+  font-size: 1.35rem;
+}
+
+.fan-lib-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.fan-lib-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(244, 239, 230, 0.72);
+  padding: 0.45rem 0.75rem;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.fan-lib-tab.is-active {
+  border-color: rgba(214, 255, 63, 0.45);
+  background: rgba(214, 255, 63, 0.12);
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.fan-lib-count {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.fan-lib-empty {
+  padding: 1.25rem 0.25rem 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fan-lib-empty p {
+  margin: 0;
+}
+
+.fan-lib-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: 0.35rem;
-  overflow: auto;
-  max-height: min(38vh, 18rem);
 }
 
-.fan-library-row {
+.fan-lib-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.fan-library-play {
+.fan-lib-row.is-active {
+  border-color: rgba(214, 255, 63, 0.28);
+  background: rgba(214, 255, 63, 0.06);
+}
+
+.fan-lib-play {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.35rem 0.25rem;
+  gap: 0.7rem;
+  padding: 0.25rem;
   border: 0;
   background: transparent;
   color: inherit;
@@ -3958,15 +4122,36 @@ select:focus-visible {
   cursor: pointer;
 }
 
-.fan-library-cover,
-.fan-library-cover-fallback {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
+.fan-lib-num {
+  width: 1.4rem;
   flex-shrink: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(244, 239, 230, 0.45);
+  font-variant-numeric: tabular-nums;
 }
 
-.fan-library-cover-fallback {
+.fan-lib-row.is-playing .fan-lib-num,
+.fan-lib-row.is-active .fan-lib-num {
+  color: var(--lime);
+}
+
+.fan-lib-cover,
+.fan-lib-cover-fallback {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fan-lib.is-compact .fan-lib-cover,
+.fan-lib.is-compact .fan-lib-cover-fallback {
+  width: 44px;
+  height: 44px;
+}
+
+.fan-lib-cover-fallback {
   display: grid;
   place-items: center;
   background: rgba(214, 255, 63, 0.12);
@@ -3974,17 +4159,43 @@ select:focus-visible {
   font-weight: 700;
 }
 
-.fan-library-meta {
+.fan-lib-meta {
   display: grid;
-  gap: 0.1rem;
+  gap: 0.12rem;
   min-width: 0;
 }
 
-.fan-library-meta strong,
-.fan-library-meta .muted {
+.fan-lib-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.fan-lib-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.fan-lib-artist {
+  color: rgba(244, 239, 230, 0.7);
+}
+
+.fan-lib-artist:hover {
+  color: var(--lime);
+}
+
+.fan-lib-when {
+  font-size: 0.75rem;
+}
+
+.fan-lib-remove {
+  flex-shrink: 0;
+  font-size: 0.8rem;
 }
 
 .vote-free-box {

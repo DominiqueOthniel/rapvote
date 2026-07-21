@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { FanLoginForm } from "@/components/FanLoginForm";
 import { FanLogoutButton } from "@/components/FanLogoutButton";
-import { FanStreakCard } from "@/components/FanStreakCard";
-import { SonsFeed } from "@/components/SonsFeed";
+import { FanHomeTabs } from "@/components/FanHomeTabs";
 import { getFanSession } from "@/lib/auth";
 import {
   getActiveSeason,
@@ -152,22 +151,20 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {engagement ? (
-        <FanStreakCard
-          initial={{
-            streakCount: engagement.streakCount,
-            freeVotes: engagement.freeVotes,
-            streakBadgeEarned: engagement.streakBadgeEarned,
-            daysToReward: engagement.daysToReward,
-          }}
-        />
-      ) : null}
-
-      <SonsFeed
+      <FanHomeTabs
         tracks={tracks}
         phases={phaseOptions}
-        fanLoggedIn
         activePhaseId={currentPhase?.id ?? null}
+        engagement={
+          engagement
+            ? {
+                streakCount: engagement.streakCount,
+                freeVotes: engagement.freeVotes,
+                streakBadgeEarned: engagement.streakBadgeEarned,
+                daysToReward: engagement.daysToReward,
+              }
+            : null
+        }
       />
     </main>
   );
