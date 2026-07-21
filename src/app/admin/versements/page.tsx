@@ -296,15 +296,26 @@ export default async function AdminVersementsPage() {
                     </td>
                     <td>{req.status}</td>
                     <td>
-                      {req.status === "pending" ? (
+                      {req.status === "pending" || req.status === "approved" ? (
                         <div className="phase-vote-actions">
-                          <form action={handlePayoutRequest}>
-                            <input type="hidden" name="requestId" value={req.id} />
-                            <input type="hidden" name="status" value="approved" />
-                            <button className="btn-ghost" type="submit">
-                              Vu / approuvé
-                            </button>
-                          </form>
+                          {req.status === "pending" ? (
+                            <>
+                              <form action={handlePayoutRequest}>
+                                <input type="hidden" name="requestId" value={req.id} />
+                                <input type="hidden" name="status" value="approved" />
+                                <button className="btn-ghost" type="submit">
+                                  Vu / approuvé
+                                </button>
+                              </form>
+                              <form action={handlePayoutRequest}>
+                                <input type="hidden" name="requestId" value={req.id} />
+                                <input type="hidden" name="status" value="rejected" />
+                                <button className="btn-ghost" type="submit">
+                                  Refuser
+                                </button>
+                              </form>
+                            </>
+                          ) : null}
                           <form action={handlePayoutRequest}>
                             <input type="hidden" name="requestId" value={req.id} />
                             <input type="hidden" name="status" value="paid" />
@@ -312,15 +323,12 @@ export default async function AdminVersementsPage() {
                               Marquer payé
                             </button>
                           </form>
-                          <form action={handlePayoutRequest}>
-                            <input type="hidden" name="requestId" value={req.id} />
-                            <input type="hidden" name="status" value="rejected" />
-                            <button className="btn-ghost" type="submit">
-                              Refuser
-                            </button>
-                          </form>
                         </div>
-                      ) : null}
+                      ) : (
+                        <span className="muted">
+                          {req.status === "paid" ? "Payé" : req.status}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

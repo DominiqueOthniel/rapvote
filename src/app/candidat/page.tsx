@@ -16,7 +16,7 @@ import {
   saveCandidatePhoto,
 } from "@/lib/upload";
 import { COMPETITION_BRAND } from "@/lib/parcours";
-import { getCandidateBalanceDue, getCandidatePaidOutXaf } from "@/lib/payouts";
+import { getCandidateBalanceDue, getCandidatePaidConfirmedXaf, getCandidateInProgressXaf } from "@/lib/payouts";
 import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
 import { WithdrawalRequestForm } from "@/components/WithdrawalRequestForm";
 import { ArtistStatsPanel } from "@/components/ArtistStatsPanel";
@@ -222,7 +222,8 @@ export default async function CandidateDashboardPage() {
   });
   const trackByPhase = new Map(tracks.map((t) => [t.phaseId, t]));
 
-  const paidOut = await getCandidatePaidOutXaf(candidate.id);
+  const paidConfirmed = await getCandidatePaidConfirmedXaf(candidate.id);
+  const inProgress = await getCandidateInProgressXaf(candidate.id);
   const balanceDue = await getCandidateBalanceDue(
     candidate.id,
     candidate.totalEarnedXaf,
@@ -290,8 +291,12 @@ export default async function CandidateDashboardPage() {
               <strong>{formatXaf(candidate.totalEarnedXaf)}</strong>
             </li>
             <li>
-              <span className="muted">Déjà versé / en cours</span>
-              <strong>{formatXaf(paidOut)}</strong>
+              <span className="muted">Déjà versé</span>
+              <strong>{formatXaf(paidConfirmed)}</strong>
+            </li>
+            <li>
+              <span className="muted">En cours</span>
+              <strong>{formatXaf(inProgress)}</strong>
             </li>
             <li>
               <span className="muted">Reste à verser</span>
@@ -324,19 +329,31 @@ export default async function CandidateDashboardPage() {
             <p className="muted">Aucune demande pour le moment.</p>
           ) : (
             <ul className="candidate-stats">
-              {withdrawalRequests.map((req) => (
-                <li key={req.id}>
-                  <span className="muted">
-                    {new Date(req.createdAt).toLocaleString("fr-FR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })}
-                    {" · "}
-                    {req.status}
-                  </span>
-                  <strong>{formatXaf(req.amountXaf)}</strong>
-                </li>
-              ))}
+              {withdrawalRequests.map((req) => {
+                const statusLabel =
+                  req.status === "paid"
+                    ? "Payé"
+                    : req.status === "approved"
+                      ? "En cours"
+                      : req.status === "pending"
+                        ? "En attente"
+                        : req.status === "rejected"
+                          ? "Refusé"
+                          : req.status;
+                return (
+                  <li key={req.id}>
+                    <span className="muted">
+                      {new Date(req.createdAt).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                      {" · "}
+                      {statusLabel}
+                    </span>
+                    <strong>{formatXaf(req.amountXaf)}</strong>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

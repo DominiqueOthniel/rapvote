@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { asJuryScoreOutOf100 } from "@/lib/jury";
 import { sortByFinalScore } from "@/lib/scoring";
 import { DEFAULT_VOTE_PACKS } from "@/lib/vote-packs";
 import { ensureSeasonVotePackages } from "@/lib/ensure-vote-packages";
@@ -116,7 +117,7 @@ export async function getSeasonTracksFeed(
   seasonId: string,
   fanId?: string | null,
 ) {
-  return prisma.phaseTrack.findMany({
+  const tracks = await prisma.phaseTrack.findMany({
     where: {
       phase: { seasonId },
     },
@@ -128,6 +129,14 @@ export async function getSeasonTracksFeed(
           stageName: true,
           photoUrl: true,
           city: true,
+          entries: {
+            select: {
+              phaseId: true,
+              votesCount: true,
+              juryScore: true,
+              status: true,
+            },
+          },
         },
       },
       phase: {
@@ -138,16 +147,13 @@ export async function getSeasonTracksFeed(
         : false,
       _count: { select: { likes: true } },
     },
-    orderBy: [
-      { phase: { number: "desc" } },
-      { candidate: { stageName: "asc" } },
-      { createdAt: "desc" },
-    ],
   });
+
+  return sortTracksByRanking(tracks);
 }
 
 export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null) {
-  return prisma.phaseTrack.findMany({
+  const tracks = await prisma.phaseTrack.findMany({
     where: {
       phaseId,
       candidate: {
@@ -167,6 +173,15 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
           stageName: true,
           photoUrl: true,
           city: true,
+          entries: {
+            where: { phaseId },
+            select: {
+              phaseId: true,
+              votesCount: true,
+              juryScore: true,
+              status: true,
+            },
+          },
         },
       },
       phase: {
@@ -177,10 +192,46 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
         : false,
       _count: { select: { likes: true } },
     },
-    orderBy: [
-      { candidate: { stageName: "asc" } },
-      { createdAt: "desc" },
-    ],
+  });
+
+  return sortTracksByRanking(tracks);
+}
+
+type TrackRankInput = {
+  playCount: number;
+  phaseId: string;
+  phase: { number: number };
+  candidate: {
+    stageName: string;
+    entries: Array<{
+      phaseId: string;
+      votesCount: number;
+      juryScore: number;
+    }>;
+  };
+};
+
+/** Classement feed: jury ↓, votes ↓, streams ↓. */
+function sortTracksByRanking<T extends TrackRankInput>(tracks: T[]): T[] {
+  return [...tracks].sort((a, b) => {
+    const entryA = a.candidate.entries.find((e) => e.phaseId === a.phaseId);
+    const entryB = b.candidate.entries.find((e) => e.phaseId === b.phaseId);
+
+    const juryA = asJuryScoreOutOf100(entryA?.juryScore ?? 0);
+    const juryB = asJuryScoreOutOf100(entryB?.juryScore ?? 0);
+    if (juryB !== juryA) return juryB - juryA;
+
+    const votesA = entryA?.votesCount ?? 0;
+    const votesB = entryB?.votesCount ?? 0;
+    if (votesB !== votesA) return votesB - votesA;
+
+    if (b.playCount !== a.playCount) return b.playCount - a.playCount;
+
+    if (b.phase.number !== a.phase.number) {
+      return b.phase.number - a.phase.number;
+    }
+
+    return a.candidate.stageName.localeCompare(b.candidate.stageName, "fr");
   });
 }
 
