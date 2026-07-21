@@ -179,17 +179,7 @@ export default async function CandidateDashboardPage() {
               <strong>{entry?.status ?? "en attente"}</strong>
             </li>
             <li>
-              <span className="muted">Votes phase</span>
-              <strong>{formatVotes(entry?.votesCount ?? 0)}</strong>
-            </li>
-            <li>
-              <span className="muted">Note jury</span>
-              <strong>
-                {entry ? formatJuryNote(entry.juryScore) : "—"}
-              </strong>
-            </li>
-            <li>
-              <span className="muted">Votes saison</span>
+              <span className="muted">Votes cumulés</span>
               <strong>{formatVotes(candidate.totalVotes)}</strong>
             </li>
             <li>

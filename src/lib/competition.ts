@@ -1,6 +1,32 @@
 import { prisma } from "@/lib/db";
 import { sortByFinalScore } from "@/lib/scoring";
 
+export function cumulativeVotes(entry: {
+  votesCount: number;
+  candidate: { totalVotes: number };
+}) {
+  return entry.candidate.totalVotes;
+}
+
+/** Aligne les entrées de phase sur le total cumulé candidat. */
+export async function syncPhaseEntryVotes(phaseId: string) {
+  const entries = await prisma.phaseEntry.findMany({
+    where: { phaseId },
+    select: { id: true, votesCount: true, candidate: { select: { totalVotes: true } } },
+  });
+
+  await Promise.all(
+    entries
+      .filter((entry) => entry.votesCount < entry.candidate.totalVotes)
+      .map((entry) =>
+        prisma.phaseEntry.update({
+          where: { id: entry.id },
+          data: { votesCount: entry.candidate.totalVotes },
+        }),
+      ),
+  );
+}
+
 export async function getActiveSeason() {
   return prisma.season.findFirst({
     where: { isActive: true },
@@ -24,16 +50,25 @@ export async function getCurrentPhase(seasonId: string) {
 }
 
 export async function getPhaseRanking(phaseId: string) {
+  await syncPhaseEntryVotes(phaseId);
+
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const entries = await prisma.phaseEntry.findMany({
     where: { phaseId, status: "active" },
     include: { candidate: true },
   });
 
-  return sortByFinalScore(entries, phase?.number ?? 0);
+  const scored = entries.map((entry) => ({
+    ...entry,
+    votesCount: cumulativeVotes(entry),
+  }));
+
+  return sortByFinalScore(scored, phase?.number ?? 0);
 }
 
 export async function getPhaseEntries(phaseId: string) {
+  await syncPhaseEntryVotes(phaseId);
+
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const entries = await prisma.phaseEntry.findMany({
     where: { phaseId },
@@ -41,11 +76,15 @@ export async function getPhaseEntries(phaseId: string) {
   });
 
   const phaseNumber = phase?.number ?? 0;
+  const withVotes = entries.map((entry) => ({
+    ...entry,
+    votesCount: cumulativeVotes(entry),
+  }));
   const active = sortByFinalScore(
-    entries.filter((entry) => entry.status === "active"),
+    withVotes.filter((entry) => entry.status === "active"),
     phaseNumber,
   );
-  const eliminated = entries
+  const eliminated = withVotes
     .filter((entry) => entry.status !== "active")
     .sort((a, b) => b.votesCount - a.votesCount);
 

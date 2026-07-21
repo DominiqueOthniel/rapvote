@@ -79,8 +79,8 @@ export default async function CandidatePage({ params }: Props) {
           </p>
           <div className="candidate-stats">
             <div>
-              <p className="muted">Votes phase</p>
-              <strong>{formatVotes(entry?.votesCount ?? 0)}</strong>
+              <p className="muted">Votes cumulés</p>
+              <strong>{formatVotes(candidate.totalVotes)}</strong>
             </div>
             <div>
               <p className="muted">Gains artiste</p>

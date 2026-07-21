@@ -89,6 +89,15 @@ video {
   flex-shrink: 1;
 }
 
+.brand-logo {
+  width: 2.4rem;
+  height: 2.4rem;
+  object-fit: cover;
+  border-radius: 999px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+}
+
 .brand-mark {
   display: grid;
   place-items: center;

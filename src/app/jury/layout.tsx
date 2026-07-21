@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { destroyJurySession, getJurySession } from "@/lib/auth";
+import { BrandMark } from "@/components/BrandMark";
 
 async function logout() {
   "use server";
@@ -17,10 +18,7 @@ export default async function JuryLayout({
 
   return (
     <div className="admin-shell">
-      <div className="brand admin-brand">
-        <span className="brand-mark">FC</span>
-        <span className="brand-name">N£₩ St@r ₽uN€h · Jury</span>
-      </div>
+      <BrandMark label="N£₩ St@r ₽uN€h · Jury" />
       <nav className="admin-nav">
         {jury ? (
           <>

@@ -1,5 +1,4 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -24,7 +23,14 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="shell site-header-inner">
         <Link href="/" className="brand">
-          <span className="brand-mark">FC</span>
+          <Image
+            src="/logo.png"
+            alt="For The Culture"
+            width={40}
+            height={40}
+            className="brand-logo"
+            priority
+          />
           <span className="brand-name">For The Culture</span>
         </Link>
         <nav className="nav" aria-label="Navigation principale">

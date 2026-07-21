@@ -54,6 +54,15 @@ export async function confirmTransaction(transactionId: string) {
       },
     });
 
+    const updatedCandidate = await db.candidate.update({
+      where: { id: locked.candidateId },
+      data: {
+        totalVotes: { increment: locked.votesCount },
+        totalEarnedXaf: { increment: candidateShareXaf },
+      },
+      select: { totalVotes: true },
+    });
+
     await db.phaseEntry.update({
       where: {
         phaseId_candidateId: {
@@ -61,15 +70,7 @@ export async function confirmTransaction(transactionId: string) {
           candidateId: locked.candidateId,
         },
       },
-      data: { votesCount: { increment: locked.votesCount } },
-    });
-
-    await db.candidate.update({
-      where: { id: locked.candidateId },
-      data: {
-        totalVotes: { increment: locked.votesCount },
-        totalEarnedXaf: { increment: candidateShareXaf },
-      },
+      data: { votesCount: updatedCandidate.totalVotes },
     });
   });
 

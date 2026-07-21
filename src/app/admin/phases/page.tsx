@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveSeason } from "@/lib/competition";
+import {
+  getActiveSeason,
+  cumulativeVotes,
+  syncPhaseEntryVotes,
+} from "@/lib/competition";
 import { EXPECTED_JURY_COUNT, asJuryScoreOutOf100, getRubricForPhase } from "@/lib/jury";
 import { getEpisodeByNumber, getEpisodeLabel } from "@/lib/parcours";
 import {
@@ -59,6 +63,11 @@ async function activatePhase(formData: FormData) {
         where: { phaseId: previousActive.id, status: "active" },
       });
       for (const entry of survivors) {
+        const candidate = await db.candidate.findUnique({
+          where: { id: entry.candidateId },
+          select: { totalVotes: true },
+        });
+        const carriedVotes = candidate?.totalVotes ?? 0;
         await db.phaseEntry.upsert({
           where: {
             phaseId_candidateId: {
@@ -70,10 +79,13 @@ async function activatePhase(formData: FormData) {
             phaseId,
             candidateId: entry.candidateId,
             status: "active",
-            votesCount: 0,
+            votesCount: carriedVotes,
             juryScore: 0,
           },
-          update: { status: "active" },
+          update: {
+            status: "active",
+            votesCount: carriedVotes,
+          },
         });
       }
     } else {
@@ -150,15 +162,24 @@ export default async function AdminPhasesPage() {
       })
     : [];
 
+  if (active) {
+    await syncPhaseEntryVotes(active.id);
+  }
+
+  const entriesWithVotes = rawEntries.map((entry) => ({
+    ...entry,
+    votesCount: cumulativeVotes(entry),
+  }));
+
   const activeEntries = sortByFinalScore(
-    rawEntries.filter((entry) => entry.status === "active"),
+    entriesWithVotes.filter((entry) => entry.status === "active"),
     active?.number ?? 0,
   );
-  const eliminatedEntries = rawEntries
+  const eliminatedEntries = entriesWithVotes
     .filter((entry) => entry.status !== "active")
     .sort((a, b) => b.votesCount - a.votesCount);
   const entries = [...activeEntries, ...eliminatedEntries];
-  const maxVotes = getMaxVotes(rawEntries);
+  const maxVotes = getMaxVotes(entriesWithVotes);
   const rubric = getRubricForPhase(active?.number ?? 0);
   const phaseNumber = active?.number ?? 0;
   const weights = weightsForPhase(phaseNumber);
@@ -281,7 +302,7 @@ export default async function AdminPhasesPage() {
                   <tr>
                     <th>#</th>
                     <th>Artiste</th>
-                    <th>Votes</th>
+                    <th>Votes cumulés</th>
                     <th>Part votes</th>
                     {juries.map((jury) => (
                       <th key={jury.id}>{jury.name}</th>

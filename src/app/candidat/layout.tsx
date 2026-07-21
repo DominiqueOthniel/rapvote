@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { destroyCandidateSession, getCandidateSession } from "@/lib/auth";
+import { BrandMark } from "@/components/BrandMark";
 import { redirect } from "next/navigation";
 
 async function logout() {
@@ -17,10 +18,7 @@ export default async function CandidateLayout({
 
   return (
     <div className="admin-shell">
-      <div className="brand admin-brand">
-        <span className="brand-mark">FC</span>
-        <span className="brand-name">Espace artiste</span>
-      </div>
+      <BrandMark label="Espace artiste" />
       <nav className="admin-nav">
         {candidate ? (
           <>

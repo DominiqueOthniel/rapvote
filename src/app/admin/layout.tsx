@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { destroyAdminSession, getAdminSession } from "@/lib/auth";
+import { BrandMark } from "@/components/BrandMark";
 
 const links = [
   { href: "/admin", label: "Dashboard" },
@@ -27,10 +28,7 @@ export default async function AdminLayout({
 
   return (
     <div className="admin-shell">
-      <div className="brand admin-brand">
-        <span className="brand-mark">FC</span>
-        <span className="brand-name">ForTheCulture Admin</span>
-      </div>
+      <BrandMark label="ForTheCulture Admin" />
       <nav className="admin-nav">
         {admin
           ? links.map((link) => (
