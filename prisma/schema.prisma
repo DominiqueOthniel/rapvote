@@ -220,20 +220,33 @@ model PayoutRequest {
 }
 
 model Fan {
-  id                String             @id @default(cuid())
+  id                String               @id @default(cuid())
   name              String
-  phone             String             @unique
-  streakCount       Int                @default(0)
+  phone             String               @unique
+  streakCount       Int                  @default(0)
   lastListenDay     String?
-  freeVotes         Int                @default(0)
-  streakBadgeEarned Boolean            @default(false)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  freeVotes         Int                  @default(0)
+  streakBadgeEarned Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   comments          TrackComment[]
   likes             TrackLike[]
   playlistItems     FanPlaylistItem[]
   listenHistory     FanListenHistory[]
   playEvents        TrackPlayEvent[]
+  dailyAwards       DailyStreamerAward[]
+}
+
+model DailyStreamerAward {
+  id             String   @id @default(cuid())
+  dayKey         String   @unique
+  fanId          String?
+  playCount      Int      @default(0)
+  freeVotesGiven Int      @default(0)
+  createdAt      DateTime @default(now())
+  fan            Fan?     @relation(fields: [fanId], references: [id], onDelete: SetNull)
+
+  @@index([fanId])
 }
 
 model FanPlaylistItem {
@@ -270,6 +283,7 @@ model TrackPlayEvent {
 
   @@index([createdAt])
   @@index([trackId, createdAt])
+  @@index([fanId, createdAt])
 }
 
 model PhaseTrack {

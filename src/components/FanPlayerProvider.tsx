@@ -60,21 +60,14 @@ export function useFanPlayerOptional() {
 
 async function postPlayCount(trackId: string): Promise<{
   playCount: number;
-      engagement?: {
-        streakCount: number;
-        freeVotes: number;
-        streakBadgeEarned: boolean;
-        streamsToReward: number;
-        rewardedNow?: boolean;
-      } | null;
+  engagement?: {
+    streakCount: number;
+    freeVotes: number;
+    streakBadgeEarned: boolean;
+    streamsToReward: number;
+    rewardedNow?: boolean;
+  } | null;
 } | null> {
-  const key = `ftc-play-${trackId}`;
-  try {
-    if (sessionStorage.getItem(key)) return null;
-  } catch {
-    // ignore
-  }
-
   try {
     const res = await fetch("/api/tracks/play", {
       method: "POST",
@@ -83,17 +76,13 @@ async function postPlayCount(trackId: string): Promise<{
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) return null;
-    try {
-      sessionStorage.setItem(key, "1");
-    } catch {
-      // ignore
-    }
     if (data?.engagement) {
       window.dispatchEvent(
         new CustomEvent("ftc:fan-engagement", { detail: data.engagement }),
       );
     }
     window.dispatchEvent(new Event("ftc:buzz-refresh"));
+    window.dispatchEvent(new Event("ftc:streamer-refresh"));
     return {
       playCount:
         typeof data?.playCount === "number" ? data.playCount : 0,
@@ -148,15 +137,11 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     countingInFlight.current = false;
     if (result && typeof result.playCount === "number") {
       setPlayCounts((prev) => ({ ...prev, [trackId]: result.playCount }));
+      // Nouvelle fenêtre d'écoute: le même son peut recompter après ~30 s.
+      listenedSeconds.current = 0;
+      countedPlay.current = false;
     } else {
-      // Échec API: on réessaie. Déjà compté en session: on laisse counted.
-      try {
-        if (!sessionStorage.getItem(`ftc-play-${trackId}`)) {
-          countedPlay.current = false;
-        }
-      } catch {
-        countedPlay.current = false;
-      }
+      countedPlay.current = false;
     }
   }, []);
 

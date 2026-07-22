@@ -1,7 +1,13 @@
 import { prisma } from "@/lib/db";
-import { STREAK_REWARD_STREAMS } from "@/lib/fan-engagement-constants";
+import {
+  DAILY_BEST_STREAMER_VOTES,
+  STREAK_REWARD_STREAMS,
+} from "@/lib/fan-engagement-constants";
 
-export { STREAK_REWARD_STREAMS } from "@/lib/fan-engagement-constants";
+export {
+  DAILY_BEST_STREAMER_VOTES,
+  STREAK_REWARD_STREAMS,
+} from "@/lib/fan-engagement-constants";
 
 export type FanEngagementSnapshot = {
   streakCount: number;
@@ -78,13 +84,16 @@ export async function getFanEngagement(fanId: string) {
 
 /**
  * Enregistre une écoute comptée: historique, event FOMO,
- * compteur de streams (+ vote gratuit tous les 10 streams).
+ * compteur de streams (+ vote gratuit tous les N streams).
  */
 export async function recordCountedListen(args: {
   trackId: string;
   fanId?: string | null;
 }) {
   const today = cameroonDayKey();
+
+  // Clôture éventuelle du classement de la veille (idempotent).
+  void settleDailyBestStreamerIfNeeded().catch(() => null);
 
   await prisma.trackPlayEvent.create({
     data: {
@@ -148,6 +157,149 @@ export async function recordCountedListen(args: {
   });
 
   return snapshotFromFan(updated, rewardedNow);
+}
+
+/**
+ * Attribue 5 votes gratuits au fan avec le plus d'écoutes sur la veille
+ * (fuseau Cameroun). Idempotent par dayKey.
+ */
+export async function settleDailyBestStreamerIfNeeded() {
+  const today = cameroonDayKey();
+  const yesterday = shiftDayKey(today, -1);
+
+  const existing = await prisma.dailyStreamerAward.findUnique({
+    where: { dayKey: yesterday },
+  });
+  if (existing) return existing;
+
+  const dayStart = new Date(`${yesterday}T00:00:00+01:00`);
+  const dayEnd = new Date(`${today}T00:00:00+01:00`);
+
+  const grouped = await prisma.trackPlayEvent.groupBy({
+    by: ["fanId"],
+    where: {
+      fanId: { not: null },
+      createdAt: { gte: dayStart, lt: dayEnd },
+    },
+    _count: { _all: true },
+  });
+
+  const ranked = grouped
+    .filter((row): row is typeof row & { fanId: string } => Boolean(row.fanId))
+    .sort((a, b) => b._count._all - a._count._all);
+
+  const winner = ranked[0];
+
+  if (!winner) {
+    try {
+      return await prisma.dailyStreamerAward.create({
+        data: {
+          dayKey: yesterday,
+          fanId: null,
+          playCount: 0,
+          freeVotesGiven: 0,
+        },
+      });
+    } catch {
+      return prisma.dailyStreamerAward.findUnique({
+        where: { dayKey: yesterday },
+      });
+    }
+  }
+
+  try {
+    return await prisma.$transaction(async (db) => {
+      const award = await db.dailyStreamerAward.create({
+        data: {
+          dayKey: yesterday,
+          fanId: winner.fanId,
+          playCount: winner._count._all,
+          freeVotesGiven: DAILY_BEST_STREAMER_VOTES,
+        },
+      });
+
+      await db.fan.update({
+        where: { id: winner.fanId },
+        data: {
+          freeVotes: { increment: DAILY_BEST_STREAMER_VOTES },
+          streakBadgeEarned: true,
+        },
+      });
+
+      return award;
+    });
+  } catch {
+    return prisma.dailyStreamerAward.findUnique({
+      where: { dayKey: yesterday },
+    });
+  }
+}
+
+export type StreamerBoardEntry = {
+  fanId: string;
+  name: string;
+  playCount: number;
+  rank: number;
+};
+
+export async function getTodayStreamerBoard(limit = 3) {
+  await settleDailyBestStreamerIfNeeded().catch(() => null);
+
+  const since = startOfCameroonDay();
+  const today = cameroonDayKey();
+  const yesterday = shiftDayKey(today, -1);
+
+  const [grouped, yesterdayAward] = await Promise.all([
+    prisma.trackPlayEvent.groupBy({
+      by: ["fanId"],
+      where: {
+        fanId: { not: null },
+        createdAt: { gte: since },
+      },
+      _count: { _all: true },
+    }),
+    prisma.dailyStreamerAward.findUnique({
+      where: { dayKey: yesterday },
+      include: {
+        fan: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
+
+  const ranked = grouped
+    .filter((row): row is typeof row & { fanId: string } => Boolean(row.fanId))
+    .sort((a, b) => b._count._all - a._count._all)
+    .slice(0, limit);
+
+  const fans = ranked.length
+    ? await prisma.fan.findMany({
+        where: { id: { in: ranked.map((r) => r.fanId) } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = Object.fromEntries(fans.map((f) => [f.id, f.name]));
+
+  const leaders: StreamerBoardEntry[] = ranked.map((row, index) => ({
+    fanId: row.fanId,
+    name: nameById[row.fanId] ?? "Fan",
+    playCount: row._count._all,
+    rank: index + 1,
+  }));
+
+  return {
+    dayKey: today,
+    rewardVotes: DAILY_BEST_STREAMER_VOTES,
+    leaders,
+    yesterdayWinner: yesterdayAward?.fan
+      ? {
+          fanId: yesterdayAward.fan.id,
+          name: yesterdayAward.fan.name,
+          playCount: yesterdayAward.playCount,
+          freeVotesGiven: yesterdayAward.freeVotesGiven,
+          dayKey: yesterdayAward.dayKey,
+        }
+      : null,
+  };
 }
 
 export async function redeemFreeVote(args: {

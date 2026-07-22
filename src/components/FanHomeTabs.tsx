@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FanStreakCard, type FanEngagementState } from "@/components/FanStreakCard";
 import { FanLibraryView } from "@/components/FanLibraryPanel";
+import { StreamerOfTheDay } from "@/components/StreamerOfTheDay";
 import { SonsFeed, type SonsFeedItem, type SonsPhaseOption } from "@/components/SonsFeed";
 
 type HomeTab = "sons" | "library";
@@ -57,6 +58,7 @@ export function FanHomeTabs({
       {tab === "sons" ? (
         <>
           {engagement ? <FanStreakCard initial={engagement} /> : null}
+          <StreamerOfTheDay />
           <SonsFeed
             tracks={tracks}
             phases={phases}
