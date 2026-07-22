@@ -94,7 +94,10 @@ export async function getPhaseEntries(phaseId: string) {
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const entries = await prisma.phaseEntry.findMany({
     where: { phaseId },
-    include: { candidate: true },
+    include: {
+      candidate: true,
+      _count: { select: { juryScores: true } },
+    },
   });
 
   const phaseNumber = phase?.number ?? 0;

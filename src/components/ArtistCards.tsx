@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useId } from "react";
 import { formatVotes } from "@/lib/money";
+import { formatJuryNote } from "@/lib/scoring";
 
 export type ArtistCardData = {
   slug: string;
@@ -11,6 +13,8 @@ export type ArtistCardData = {
   bio: string | null;
   photoUrl: string | null;
   votesCount?: number;
+  juryScore?: number;
+  juryRatedCount?: number;
   trackCount?: number;
   rank?: number;
   eliminated?: boolean;
@@ -39,6 +43,59 @@ function WaveMark() {
   );
 }
 
+function CrownMark() {
+  const uid = useId().replace(/:/g, "");
+  const goldId = `crownGold-${uid}`;
+  const shineId = `crownShine-${uid}`;
+
+  return (
+    <svg
+      className="artist-crown-svg"
+      viewBox="0 0 64 40"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={goldId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fff6b0" />
+          <stop offset="35%" stopColor="#ffd24a" />
+          <stop offset="70%" stopColor="#f0a818" />
+          <stop offset="100%" stopColor="#ffe27a" />
+        </linearGradient>
+        <linearGradient id={shineId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+          <stop offset="45%" stopColor="rgba(255,255,255,0.85)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </linearGradient>
+      </defs>
+      <path
+        fill={`url(#${goldId})`}
+        d="M6 30 L10 12 L22 24 L32 6 L42 24 L54 12 L58 30 Z"
+      />
+      <rect
+        x="6"
+        y="30"
+        width="52"
+        height="6"
+        rx="1.5"
+        fill={`url(#${goldId})`}
+      />
+      <circle cx="10" cy="12" r="2.4" fill="#fff4c4" />
+      <circle cx="32" cy="6" r="2.8" fill="#fff8d6" />
+      <circle cx="54" cy="12" r="2.4" fill="#fff4c4" />
+      <rect
+        className="artist-crown-shine"
+        x="6"
+        y="8"
+        width="18"
+        height="28"
+        fill={`url(#${shineId})`}
+        opacity="0.7"
+      />
+    </svg>
+  );
+}
+
 export function ArtistCards({ artists }: Props) {
   return (
     <div className="artist-grid">
@@ -47,11 +104,20 @@ export function ArtistCards({ artists }: Props) {
         const tracks = artist.trackCount ?? 0;
         const profileHref = `/candidats/${artist.slug}`;
         const discoHref = `${profileHref}#discographie`;
+        const juryPending = (artist.juryRatedCount ?? 0) === 0;
+        const hasJuryField = typeof artist.juryScore === "number";
+        const isLeader = artist.rank === 1 && !wasted;
 
         return (
           <article
             key={artist.slug}
-            className={wasted ? "artist-card artist-card-wasted" : "artist-card"}
+            className={[
+              "artist-card",
+              wasted ? "artist-card-wasted" : "",
+              isLeader ? "is-leader" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={{ animationDelay: `${index * 90}ms` }}
           >
             <Link
@@ -59,6 +125,11 @@ export function ArtistCards({ artists }: Props) {
               className="artist-card-media"
               aria-label={`Profil de ${artist.stageName}`}
             >
+              {isLeader ? (
+                <span className="artist-crown" title="En tête du classement">
+                  <CrownMark />
+                </span>
+              ) : null}
               {artist.photoUrl ? (
                 <Image
                   src={artist.photoUrl}
@@ -81,7 +152,26 @@ export function ArtistCards({ artists }: Props) {
                 </div>
               ) : null}
               {typeof artist.rank === "number" && !wasted ? (
-                <span className="artist-card-rank">#{artist.rank}</span>
+                <span
+                  className={
+                    isLeader ? "artist-card-rank is-leader-rank" : "artist-card-rank"
+                  }
+                >
+                  #{artist.rank}
+                </span>
+              ) : null}
+              {hasJuryField && !wasted ? (
+                <span
+                  className={
+                    juryPending
+                      ? "artist-card-jury-badge is-pending"
+                      : "artist-card-jury-badge"
+                  }
+                >
+                  {juryPending
+                    ? "Note jury · —"
+                    : `Note ${formatJuryNote(artist.juryScore as number)}`}
+                </span>
               ) : null}
               {!wasted && tracks > 0 ? (
                 <span className="artist-card-tracks-badge">
@@ -121,11 +211,20 @@ export function ArtistCards({ artists }: Props) {
                 </Link>
 
                 <div className="artist-card-foot">
-                  {typeof artist.votesCount === "number" ? (
-                    <strong>{formatVotes(artist.votesCount)} votes</strong>
-                  ) : (
-                    <strong>Profil</strong>
-                  )}
+                  <div className="artist-card-stats">
+                    {typeof artist.votesCount === "number" ? (
+                      <strong>{formatVotes(artist.votesCount)} votes</strong>
+                    ) : (
+                      <strong>Profil</strong>
+                    )}
+                    {hasJuryField ? (
+                      <span className="artist-card-jury-line">
+                        {juryPending
+                          ? "Jury en attente"
+                          : `Jury ${formatJuryNote(artist.juryScore as number)}`}
+                      </span>
+                    ) : null}
+                  </div>
                   <Link
                     href={profileHref}
                     className={

@@ -36,6 +36,8 @@ export default async function CandidatsPage() {
     bio: entry.candidate.bio,
     photoUrl: entry.candidate.photoUrl,
     votesCount: entry.votesCount,
+    juryScore: entry.juryScore,
+    juryRatedCount: entry._count.juryScores,
     trackCount: trackCountById[entry.candidate.id] ?? 0,
     rank: entry.status === "active" ? ++activeRank : undefined,
     eliminated: entry.status === "eliminated",
