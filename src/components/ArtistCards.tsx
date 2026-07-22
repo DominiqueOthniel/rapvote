@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useId } from "react";
 import { formatVotes } from "@/lib/money";
-import { formatJuryNote } from "@/lib/scoring";
+import { formatJuryNote } from "@/lib/jury-score";
 
 export type ArtistCardData = {
   slug: string;

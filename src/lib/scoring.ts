@@ -1,4 +1,6 @@
-import { asJuryScoreOutOf100 } from "@/lib/jury";
+import { asJuryScoreOutOf100 } from "@/lib/jury-score";
+
+export { formatJuryNote, formatScore } from "@/lib/jury-score";
 
 /** Poids publics classiques (à partir de l'épisode 9). */
 export const VOTE_WEIGHT = 0.15;
@@ -79,12 +81,4 @@ export function sortByFinalScore<T extends ScoredEntry>(
     if (juryDiff !== 0) return juryDiff;
     return b.votesCount - a.votesCount;
   });
-}
-
-export function formatScore(value: number): string {
-  return value.toFixed(1);
-}
-
-export function formatJuryNote(value: number): string {
-  return `${formatScore(asJuryScoreOutOf100(value))}/100`;
 }

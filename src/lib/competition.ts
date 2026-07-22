@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { asJuryScoreOutOf100 } from "@/lib/jury";
+import { asJuryScoreOutOf100 } from "@/lib/jury-score";
 import { sortByFinalScore } from "@/lib/scoring";
 import { DEFAULT_VOTE_PACKS } from "@/lib/vote-packs";
 import { ensureSeasonVotePackages } from "@/lib/ensure-vote-packages";
