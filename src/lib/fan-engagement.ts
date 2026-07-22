@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/db";
 import {
   DAILY_BEST_STREAMER_VOTES,
+  FREE_VOTE_AMOUNT_XAF,
   STREAK_REWARD_STREAMS,
 } from "@/lib/fan-engagement-constants";
+import { splitAmount } from "@/lib/money";
 
 export {
   DAILY_BEST_STREAMER_VOTES,
+  FREE_VOTE_AMOUNT_XAF,
   STREAK_REWARD_STREAMS,
 } from "@/lib/fan-engagement-constants";
 
@@ -359,6 +362,8 @@ export async function redeemFreeVote(args: {
   }
 
   const reference = `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const amountXaf = FREE_VOTE_AMOUNT_XAF;
+  const { candidateShareXaf, adminShareXaf } = splitAmount(amountXaf);
 
   await prisma.$transaction(async (db) => {
     const spent = await db.fan.updateMany({
@@ -379,9 +384,9 @@ export async function redeemFreeVote(args: {
         voterName: args.fanName || fan.name,
         operator: "FREE",
         votesCount: 1,
-        amountXaf: 0,
-        candidateShareXaf: 0,
-        adminShareXaf: 0,
+        amountXaf,
+        candidateShareXaf,
+        adminShareXaf,
         status: "paid",
         paidAt: new Date(),
       },
@@ -398,7 +403,10 @@ export async function redeemFreeVote(args: {
 
     const updatedCandidate = await db.candidate.update({
       where: { id: candidate.id },
-      data: { totalVotes: { increment: 1 } },
+      data: {
+        totalVotes: { increment: 1 },
+        totalEarnedXaf: { increment: candidateShareXaf },
+      },
       select: { totalVotes: true },
     });
 

@@ -177,7 +177,7 @@ export function VoteForm({
             <strong>Vote gratuit</strong>
             <p className="muted">
               Tu as {freeLeft} vote{freeLeft > 1 ? "s" : ""} offert
-              {freeLeft > 1 ? "s" : ""} (20 streams).
+              {freeLeft > 1 ? "s" : ""} (20 streams · 5 FCFA chacun).
             </p>
           </div>
           <button
