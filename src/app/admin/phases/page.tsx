@@ -291,15 +291,6 @@ export default async function AdminPhasesPage() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div className="admin-card">
-            <SubmissionDeadlineForm
-              phaseId={active.id}
-              phaseLabel={`E${active.number} · ${active.theme ?? active.title}`}
-              deadline={active.submissionDeadlineAt}
-            />
-          </div>
             <div className="score-rules-formula">
               {votesInScore
                 ? `Score final = (part votes × ${Math.round(weights.voteWeight * 100)}%) + (moyenne jury /100 × ${Math.round(weights.juryWeight * 100)}%)`
