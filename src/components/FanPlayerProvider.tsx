@@ -195,6 +195,20 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
         setDuration(0);
         audio.src = next.audioUrl;
         audio.load();
+        // Lyrics hors du feed: chargement léger à la lecture.
+        if (next.lyrics == null) {
+          void fetch(`/api/tracks/lyrics?trackId=${encodeURIComponent(next.id)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (typeof data?.lyrics !== "string") return;
+              setTrack((current) =>
+                current?.id === next.id
+                  ? { ...current, lyrics: data.lyrics }
+                  : current,
+              );
+            })
+            .catch(() => null);
+        }
       } else {
         setTrack(next);
       }

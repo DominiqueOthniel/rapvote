@@ -78,8 +78,13 @@ export async function getCurrentPhase(seasonId: string) {
   });
 }
 
-export async function getPhaseRanking(phaseId: string) {
-  await syncPhaseEntryVotes(phaseId);
+export async function getPhaseRanking(
+  phaseId: string,
+  options?: { syncVotes?: boolean },
+) {
+  if (options?.syncVotes !== false) {
+    await syncPhaseEntryVotes(phaseId);
+  }
 
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const [entries, tracks] = await Promise.all([
@@ -105,8 +110,13 @@ export async function getPhaseRanking(phaseId: string) {
   return sortByFinalScore(scored, phase?.number ?? 0);
 }
 
-export async function getPhaseEntries(phaseId: string) {
-  await syncPhaseEntryVotes(phaseId);
+export async function getPhaseEntries(
+  phaseId: string,
+  options?: { syncVotes?: boolean },
+) {
+  if (options?.syncVotes !== false) {
+    await syncPhaseEntryVotes(phaseId);
+  }
 
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
   const [entries, tracks] = await Promise.all([
@@ -145,8 +155,13 @@ export async function getPhaseEntries(phaseId: string) {
 
 /**
  * Points cumulés sur le parcours (somme des scores), hors phase 0.
+ * syncVotes=false: lecture seule, plus rapide (feed sons / UI).
  */
-export async function getCandidateCumulativeScores(seasonId: string) {
+export async function getCandidateCumulativeScores(
+  seasonId: string,
+  options?: { syncVotes?: boolean },
+) {
+  const syncVotes = options?.syncVotes !== false;
   const phases = await prisma.phase.findMany({
     where: { seasonId },
     select: { id: true, number: true },
@@ -165,7 +180,11 @@ export async function getCandidateCumulativeScores(seasonId: string) {
     };
   }
 
-  await Promise.all(scoringPhases.map((phase) => syncPhaseEntryVotes(phase.id)));
+  if (syncVotes) {
+    await Promise.all(
+      scoringPhases.map((phase) => syncPhaseEntryVotes(phase.id)),
+    );
+  }
 
   const scoringPhaseIds = new Set(scoringPhases.map((phase) => phase.id));
   const [entries, tracks] = await Promise.all([
@@ -248,8 +267,9 @@ export async function getCompetitionStandings(seasonId: string) {
   }
 
   const [entries, board] = await Promise.all([
-    getPhaseEntries(phase.id),
-    getCandidateCumulativeScores(seasonId),
+    // Lecture publique: pas de sync (votes via candidate.totalVotes).
+    getPhaseEntries(phase.id, { syncVotes: false }),
+    getCandidateCumulativeScores(seasonId, { syncVotes: false }),
   ]);
 
   const standings = [...entries]
@@ -284,45 +304,46 @@ export async function getSeasonTracksFeed(
   seasonId: string,
   fanId?: string | null,
 ) {
-  const tracks = await prisma.phaseTrack.findMany({
-    where: {
-      phase: { seasonId },
-    },
-    include: {
-      candidate: {
-        select: {
-          id: true,
-          slug: true,
-          stageName: true,
-          photoUrl: true,
-          city: true,
-          entries: {
-            select: {
-              phaseId: true,
-              votesCount: true,
-              juryScore: true,
-              status: true,
+  const [tracks, board] = await Promise.all([
+    prisma.phaseTrack.findMany({
+      where: {
+        phase: { seasonId },
+      },
+      include: {
+        candidate: {
+          select: {
+            id: true,
+            slug: true,
+            stageName: true,
+            photoUrl: true,
+            city: true,
+            entries: {
+              select: {
+                phaseId: true,
+                status: true,
+              },
             },
           },
         },
-      },
-      phase: {
-        select: {
-          id: true,
-          number: true,
-          title: true,
-          theme: true,
-          submissionDeadlineAt: true,
+        phase: {
+          select: {
+            id: true,
+            number: true,
+            title: true,
+            theme: true,
+            submissionDeadlineAt: true,
+          },
         },
+        likes: fanId
+          ? { where: { fanId }, select: { id: true } }
+          : false,
+        _count: { select: { likes: true } },
       },
-      likes: fanId
-        ? { where: { fanId }, select: { id: true } }
-        : false,
-      _count: { select: { likes: true } },
-    },
-  });
+    }),
+    // Pas de sync votes: le feed doit rester rapide.
+    getCandidateCumulativeScores(seasonId, { syncVotes: false }),
+  ]);
 
-  const board = await getCandidateCumulativeScores(seasonId);
   return sortTracksByRanking(tracks, board.scores);
 }
 
@@ -355,8 +376,6 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
             where: { phaseId },
             select: {
               phaseId: true,
-              votesCount: true,
-              juryScore: true,
               status: true,
             },
           },
@@ -379,7 +398,7 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
   });
 
   const board = phase
-    ? await getCandidateCumulativeScores(phase.seasonId)
+    ? await getCandidateCumulativeScores(phase.seasonId, { syncVotes: false })
     : { scores: new Map<string, number>(), scoringPhaseCount: 0 };
   return sortTracksByRanking(tracks, board.scores);
 }
@@ -393,8 +412,6 @@ type TrackRankInput = {
     stageName: string;
     entries: Array<{
       phaseId: string;
-      votesCount: number;
-      juryScore: number;
       status?: string;
     }>;
   };

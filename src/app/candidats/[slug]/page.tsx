@@ -81,50 +81,59 @@ export default async function CandidatePage({ params }: Props) {
   const candidate = await prisma.candidate.findUnique({ where: { slug } });
   if (!candidate) notFound();
 
-  const season = await getActiveSeason();
-  const phase = season ? await getCurrentPhase(season.id) : null;
-  const packages = season?.packages ?? [];
-  const fan = await getFanSession();
-  const candidateSession = await getCandidateSession();
+  const [season, fan, candidateSession] = await Promise.all([
+    getActiveSeason(),
+    getFanSession(),
+    getCandidateSession(),
+  ]);
   const isOwner = candidateSession?.id === candidate.id;
 
-  const entry = phase
-    ? await prisma.phaseEntry.findUnique({
-        where: {
-          phaseId_candidateId: {
-            phaseId: phase.id,
+  const [phase, seasonEntries, tracks, seasonStandings] = await Promise.all([
+    season ? getCurrentPhase(season.id) : Promise.resolve(null),
+    season
+      ? prisma.phaseEntry.findMany({
+          where: {
             candidateId: candidate.id,
+            phase: { seasonId: season.id },
           },
+          include: {
+            phase: true,
+            _count: { select: { juryScores: true } },
+            juryScores: {
+              include: { jury: { select: { name: true } } },
+              orderBy: { jury: { name: "asc" } },
+            },
+          },
+          orderBy: { phase: { number: "asc" } },
+        })
+      : Promise.resolve([]),
+    prisma.phaseTrack.findMany({
+      where: { candidateId: candidate.id },
+      include: {
+        phase: true,
+        comments: {
+          orderBy: { createdAt: "desc" },
+          include: { fan: { select: { id: true, name: true } } },
         },
-        include: {
-          _count: { select: { juryScores: true } },
-        },
-      })
-    : null;
+        likes: fan
+          ? { where: { fanId: fan.id }, select: { id: true } }
+          : false,
+        _count: { select: { likes: true } },
+      },
+      orderBy: { phase: { number: "asc" } },
+    }),
+    season ? getCompetitionStandings(season.id) : Promise.resolve(null),
+  ]);
 
-  const seasonEntries = season
-    ? await prisma.phaseEntry.findMany({
-        where: {
-          candidateId: candidate.id,
-          phase: { seasonId: season.id },
-        },
-        include: {
-          phase: true,
-          _count: { select: { juryScores: true } },
-          juryScores: {
-            include: { jury: { select: { name: true } } },
-            orderBy: { jury: { name: "asc" } },
-          },
-        },
-        orderBy: { phase: { number: "asc" } },
-      })
-    : [];
+  const packages = season?.packages ?? [];
+
+  const entry =
+    phase
+      ? seasonEntries.find((se) => se.phaseId === phase.id) ?? null
+      : null;
 
   let currentScore: CompetitionPhaseScore | null = null;
   const history: CompetitionPhaseScore[] = [];
-  const seasonStandings = season
-    ? await getCompetitionStandings(season.id)
-    : null;
   const overallRankIdx =
     seasonStandings?.standings.findIndex(
       (e) => e.candidateId === candidate.id && e.status === "active",
@@ -141,7 +150,10 @@ export default async function CandidatePage({ params }: Props) {
     >();
     await Promise.all(
       uniquePhaseIds.map(async (phaseId) => {
-        fieldsByPhase.set(phaseId, await getPhaseEntries(phaseId));
+        fieldsByPhase.set(
+          phaseId,
+          await getPhaseEntries(phaseId, { syncVotes: false }),
+        );
       }),
     );
 
@@ -181,7 +193,7 @@ export default async function CandidatePage({ params }: Props) {
   }
 
   if (phase && entry && !currentScore) {
-    const phaseField = await getPhaseEntries(phase.id);
+    const phaseField = await getPhaseEntries(phase.id, { syncVotes: false });
     const activeField = phaseField.filter((e) => e.status === "active");
     const maxVotes = getMaxVotes(
       activeField.length > 0 ? activeField : phaseField,
@@ -202,22 +214,6 @@ export default async function CandidatePage({ params }: Props) {
       juryExpected: EXPECTED_JURY_COUNT,
     });
   }
-
-  const tracks = await prisma.phaseTrack.findMany({
-    where: { candidateId: candidate.id },
-    include: {
-      phase: true,
-      comments: {
-        orderBy: { createdAt: "desc" },
-        include: { fan: { select: { id: true, name: true } } },
-      },
-      likes: fan
-        ? { where: { fanId: fan.id }, select: { id: true } }
-        : false,
-      _count: { select: { likes: true } },
-    },
-    orderBy: { phase: { number: "asc" } },
-  });
 
   const totalPlays = tracks.reduce((sum, track) => sum + track.playCount, 0);
   const totalLikes = tracks.reduce(

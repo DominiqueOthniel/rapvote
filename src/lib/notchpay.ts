@@ -315,27 +315,7 @@ export async function collectVotePayment(params: {
     }
   }
 
-  // Checkout Notch: plus fiable pour déclencher Orange/MTN Money.
-  // On tente aussi le process direct (push) avant la redirection.
-  try {
-    await notchFetch(
-      `/payments/${encodeURIComponent(paymentRef)}`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          channel,
-          data: {
-            phone: phonePlus,
-            account_number: phonePlus,
-          },
-        }),
-      },
-      { grant: false },
-    );
-  } catch {
-    // Le checkout couvre ce cas.
-  }
-
+  // Checkout Notch: redirection immédiate (pas d'attente du push).
   return {
     mode: "live" as const,
     reference: paymentRef,

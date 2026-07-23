@@ -11,14 +11,12 @@ type HomeTab = "sons" | "library";
 type Props = {
   tracks: SonsFeedItem[];
   phases: SonsPhaseOption[];
-  activePhaseId: string | null;
   engagement: FanEngagementState | null;
 };
 
 export function FanHomeTabs({
   tracks,
   phases,
-  activePhaseId,
   engagement,
 }: Props) {
   const [tab, setTab] = useState<HomeTab>("sons");
@@ -63,7 +61,6 @@ export function FanHomeTabs({
             tracks={tracks}
             phases={phases}
             fanLoggedIn
-            activePhaseId={activePhaseId}
           />
         </>
       ) : (

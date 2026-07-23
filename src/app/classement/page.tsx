@@ -5,18 +5,16 @@ import {
   getCurrentPhase,
   getPhaseRanking,
 } from "@/lib/competition";
-import { reconcilePendingVotes } from "@/lib/reconcile-votes";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClassementPage() {
-  await reconcilePendingVotes(12).catch((error) => {
-    console.error("classement reconcile", error);
-  });
-
   const season = await getActiveSeason();
   const phase = season ? await getCurrentPhase(season.id) : null;
-  const ranking = phase ? await getPhaseRanking(phase.id) : [];
+  // Lecture seule: sync votes côté paiement / webhook, pas au chargement page.
+  const ranking = phase
+    ? await getPhaseRanking(phase.id, { syncVotes: false })
+    : [];
 
   const items = ranking.map((entry, index) => ({
     rank: index + 1,

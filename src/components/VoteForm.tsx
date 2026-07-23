@@ -156,7 +156,7 @@ export function VoteForm({
           new CustomEvent("ftc:fan-engagement", { detail: data.engagement }),
         );
       }
-      router.refresh();
+      // Pas de router.refresh(): le compteur local + event suffisent.
     } catch {
       setError("Connexion impossible. Réessaie.");
     } finally {

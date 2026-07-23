@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { formatVotes } from "@/lib/money";
 import { HeartLikeButton } from "@/components/HeartLikeButton";
 import {
@@ -49,7 +48,6 @@ export function TrackListenCard({
   listenLockedMessage = null,
   lateSubmission = false,
 }: Props) {
-  const router = useRouter();
   const player = useFanPlayerOptional();
   const [downloads, setDownloads] = useState(initialDownloads);
   const [likes, setLikes] = useState(initialLikes);
@@ -186,7 +184,6 @@ export function TrackListenCard({
       setLiked(Boolean(data.liked));
       if (typeof data.likeCount === "number") setLikes(data.likeCount);
       setBusyLike(false);
-      router.refresh();
     } catch {
       setLikeHint("Connexion impossible. Réessaie.");
       setBusyLike(false);

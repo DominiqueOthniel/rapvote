@@ -33,6 +33,7 @@ export function FanLoginForm({ onLoggedIn }: Props) {
       }
       onLoggedIn?.();
       router.refresh();
+      setLoading(false);
     } catch {
       setError("Connexion impossible. Réessaie.");
       setLoading(false);

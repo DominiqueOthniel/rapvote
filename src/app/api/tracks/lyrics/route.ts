@@ -10,6 +10,30 @@ const schema = z.object({
   lyrics: z.string().trim().max(12000).nullable().optional(),
 });
 
+export async function GET(request: Request) {
+  const trackId = new URL(request.url).searchParams.get("trackId");
+  if (!trackId) {
+    return NextResponse.json({ error: "trackId requis" }, { status: 400 });
+  }
+
+  const track = await prisma.phaseTrack.findUnique({
+    where: { id: trackId },
+    select: { lyrics: true },
+  });
+  if (!track) {
+    return NextResponse.json({ error: "Son introuvable" }, { status: 404 });
+  }
+
+  return NextResponse.json(
+    { lyrics: track.lyrics },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      },
+    },
+  );
+}
+
 export async function POST(request: Request) {
   const session = await getCandidateSession();
   if (!session) {

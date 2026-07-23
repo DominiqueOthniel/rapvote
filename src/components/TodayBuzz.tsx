@@ -53,14 +53,17 @@ export function useTodayBuzz(
     }
 
     void load();
-    const id = window.setInterval(() => void load(), 15000);
+    const id = window.setInterval(() => void load(), 45000);
+    let refreshTimer: number | null = null;
     function onRefresh() {
-      void load();
+      if (refreshTimer != null) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void load(), 1200);
     }
     window.addEventListener("ftc:buzz-refresh", onRefresh);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      if (refreshTimer != null) window.clearTimeout(refreshTimer);
       window.removeEventListener("ftc:buzz-refresh", onRefresh);
     };
     // trackIds serialized via trackKey

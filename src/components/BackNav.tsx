@@ -8,8 +8,8 @@ type Props = {
 };
 
 export function BackNav({
-  fallbackHref = "/#artistes",
-  label = "Retour aux artistes",
+  fallbackHref = "/candidats",
+  label = "Retour aux candidats",
 }: Props) {
   const router = useRouter();
 

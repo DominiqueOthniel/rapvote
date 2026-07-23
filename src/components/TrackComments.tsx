@@ -22,11 +22,12 @@ type Props = {
 
 export function TrackComments({
   trackId,
-  comments,
+  comments: initialComments,
   fan,
   isOwner,
 }: Props) {
   const router = useRouter();
+  const [items, setItems] = useState(initialComments);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +52,26 @@ export function TrackComments({
         setLoading(false);
         return;
       }
+      if (data.comment) {
+        setItems((prev) => [
+          {
+            id: data.comment.id,
+            body: data.comment.body,
+            createdAt:
+              typeof data.comment.createdAt === "string"
+                ? data.comment.createdAt
+                : new Date(data.comment.createdAt).toISOString(),
+            likedByArtist: Boolean(data.comment.likedByArtist),
+            fan: {
+              id: data.comment.fanId ?? fan?.id ?? "",
+              name: data.comment.fan?.name ?? fan?.name ?? "Fan",
+            },
+          },
+          ...prev,
+        ]);
+      }
       setBody("");
       setLoading(false);
-      router.refresh();
     } catch {
       setError("Connexion impossible. Réessaie.");
       setLoading(false);
@@ -82,8 +100,8 @@ export function TrackComments({
         setBusyId(null);
         return;
       }
+      setItems((prev) => prev.filter((c) => c.id !== commentId));
       setBusyId(null);
-      router.refresh();
     } catch {
       setActionError("Connexion impossible. Réessaie.");
       setBusyId(null);
@@ -105,8 +123,19 @@ export function TrackComments({
         setBusyId(null);
         return;
       }
+      setItems((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? {
+                ...c,
+                likedByArtist: Boolean(
+                  data.likedByArtist ?? !c.likedByArtist,
+                ),
+              }
+            : c,
+        ),
+      );
       setBusyId(null);
-      router.refresh();
     } catch {
       setActionError("Connexion impossible. Réessaie.");
       setBusyId(null);
@@ -115,15 +144,15 @@ export function TrackComments({
 
   return (
     <div className="track-comments">
-      <h4>Commentaires ({comments.length})</h4>
+      <h4>Commentaires ({items.length})</h4>
 
       {actionError ? <p className="error">{actionError}</p> : null}
 
-      {comments.length === 0 ? (
+      {items.length === 0 ? (
         <p className="muted">Aucun commentaire pour l&apos;instant.</p>
       ) : (
         <ul className="comment-list">
-          {comments.map((comment) => {
+          {items.map((comment) => {
             const isAuthor = fan?.id === comment.fan.id;
             const canDelete = Boolean(isOwner || isAuthor);
 

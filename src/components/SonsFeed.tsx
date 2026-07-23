@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { HeartLikeButton } from "@/components/HeartLikeButton";
 import {
   useFanPlayer,
@@ -46,7 +45,6 @@ type Props = {
   tracks: SonsFeedItem[];
   phases: SonsPhaseOption[];
   fanLoggedIn: boolean;
-  activePhaseId?: string | null;
 };
 
 function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
@@ -69,13 +67,9 @@ export function SonsFeed({
   tracks,
   phases,
   fanLoggedIn,
-  activePhaseId = null,
 }: Props) {
-  const router = useRouter();
   const { track, isPlaying, playTrack, toggle, playCounts } = useFanPlayer();
-  const [phaseFilter, setPhaseFilter] = useState<string>(
-    () => activePhaseId ?? "all",
-  );
+  const [phaseFilter, setPhaseFilter] = useState<string>("all");
   const [likes, setLikes] = useState(() =>
     Object.fromEntries(tracks.map((t) => [t.id, t.likeCount])),
   );
@@ -143,7 +137,7 @@ export function SonsFeed({
       }
       window.dispatchEvent(new Event("ftc:buzz-refresh"));
       setBusyId(null);
-      router.refresh();
+      // Pas de router.refresh(): le like est déjà à jour en local.
     } catch {
       setHint("Connexion impossible. Réessaie.");
       setBusyId(null);

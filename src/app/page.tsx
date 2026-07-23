@@ -76,8 +76,10 @@ export default async function HomePage() {
     );
   }
 
-  const fan = await getFanSession();
-  const currentPhase = await getCurrentPhase(season.id);
+  const [fan, currentPhase] = await Promise.all([
+    getFanSession(),
+    getCurrentPhase(season.id),
+  ]);
   const currentEpisode = currentPhase
     ? getEpisodeByNumber(currentPhase.number)
     : null;
@@ -109,8 +111,10 @@ export default async function HomePage() {
     );
   }
 
-  const rawTracks = await getSeasonTracksFeed(season.id, fan.id);
-  const engagement = await getFanEngagement(fan.id);
+  const [rawTracks, engagement] = await Promise.all([
+    getSeasonTracksFeed(season.id, fan.id),
+    getFanEngagement(fan.id),
+  ]);
   const phasesWithTracks = new Set(rawTracks.map((t) => t.phaseId));
   const phaseOptions = season.phases
     .filter((p) => phasesWithTracks.has(p.id))
@@ -133,7 +137,8 @@ export default async function HomePage() {
       likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
       phaseId: t.phaseId,
       phaseLabel: phaseChipLabel(t.phase),
-      lyrics: t.lyrics,
+      // Pas de lyrics dans la liste: payload plus léger, hydratation plus rapide.
+      lyrics: null as string | null,
       listenUnlockAt: listen.locked
         ? listen.unlockAt?.toISOString() ?? null
         : null,
@@ -166,7 +171,6 @@ export default async function HomePage() {
       <FanHomeTabs
         tracks={tracks}
         phases={phaseOptions}
-        activePhaseId={currentPhase?.id ?? null}
         engagement={
           engagement
             ? {

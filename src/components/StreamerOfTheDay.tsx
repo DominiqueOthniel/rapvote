@@ -55,16 +55,18 @@ export function StreamerOfTheDay() {
     }
 
     void load();
-    // Temps réel léger: refresh fréquent + events après chaque stream compté.
-    const id = window.setInterval(() => void load(), 8000);
+    const id = window.setInterval(() => void load(), 45000);
+    let refreshTimer: number | null = null;
     function onRefresh() {
-      void load();
+      if (refreshTimer != null) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void load(), 1500);
     }
     window.addEventListener("ftc:streamer-refresh", onRefresh);
     window.addEventListener("ftc:buzz-refresh", onRefresh);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      if (refreshTimer != null) window.clearTimeout(refreshTimer);
       window.removeEventListener("ftc:streamer-refresh", onRefresh);
       window.removeEventListener("ftc:buzz-refresh", onRefresh);
     };

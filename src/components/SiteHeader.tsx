@@ -51,6 +51,7 @@ export function SiteHeader() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch
                 className={active ? "nav-link active" : "nav-link"}
               >
                 {link.label}

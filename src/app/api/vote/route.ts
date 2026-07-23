@@ -88,18 +88,12 @@ export async function POST(request: Request) {
       votesCount = parsed.data.customVotes;
       amountXaf = priceForVotes(votesCount);
 
+      const packs = await prisma.votePackage.findMany({
+        where: { seasonId: candidate.seasonId, isActive: true },
+        orderBy: { sortOrder: "asc" },
+      });
       const unitPack =
-        (await prisma.votePackage.findFirst({
-          where: {
-            seasonId: candidate.seasonId,
-            votesCount: 1,
-            isActive: true,
-          },
-        })) ??
-        (await prisma.votePackage.findFirst({
-          where: { seasonId: candidate.seasonId, isActive: true },
-          orderBy: { sortOrder: "asc" },
-        }));
+        packs.find((pack) => pack.votesCount === 1) ?? packs[0] ?? null;
 
       if (!unitPack) {
         return NextResponse.json(

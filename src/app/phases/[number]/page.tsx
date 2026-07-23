@@ -132,7 +132,7 @@ export default async function PhaseDetailPage({ params }: Props) {
             {next.title} →
           </Link>
         ) : (
-          <Link className="btn-primary" href="/">
+          <Link className="btn-primary" href="/candidats">
             Voir les artistes
           </Link>
         )}
