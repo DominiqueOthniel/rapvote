@@ -43,14 +43,6 @@ export function averageCriteria(
   });
 }
 
-export function weakestCriteria(criteria: CriterionAverage[], limit = 2) {
-  return [...criteria]
-    .filter((c) => c.max > 0)
-    .sort((a, b) => a.fillPct - b.fillPct || a.average - b.average)
-    .slice(0, limit)
-    .filter((c) => c.fillPct < 75);
-}
-
 export type PhaseFeedback = {
   phaseId: string;
   phaseNumber: number;
@@ -95,16 +87,12 @@ export function JuryFeedbackDetail({ phases, showPerJury = true }: Props) {
       <div className="jury-feedback-head">
         <p className="muted">Feedback jury</p>
         <h2>Détail des notes</h2>
-        <p className="muted">
-          Vois comment tu as été noté sur chaque critère, et où progresser.
-        </p>
       </div>
 
       <div className="jury-feedback-list">
         {scored.map((phase) => {
           const rubric = getRubricForPhase(phase.phaseNumber);
           const averaged = averageCriteria(rubric, phase.notes);
-          const focus = weakestCriteria(averaged);
           const avgTotal =
             phase.notes.reduce((s, n) => s + asJuryScoreOutOf100(n.score), 0) /
             phase.notes.length;
@@ -115,11 +103,6 @@ export function JuryFeedbackDetail({ phases, showPerJury = true }: Props) {
                 <div>
                   <p className="jury-feedback-ep">{phase.phaseLabel}</p>
                   <h3>{rubric.title}</h3>
-                  {rubric.question ? (
-                    <p className="jury-feedback-question">
-                      « {rubric.question} »
-                    </p>
-                  ) : null}
                 </div>
                 <div className="jury-feedback-total">
                   <strong>{formatJuryNote(avgTotal)}</strong>
@@ -152,34 +135,9 @@ export function JuryFeedbackDetail({ phases, showPerJury = true }: Props) {
                         style={{ width: `${criterion.fillPct}%` }}
                       />
                     </div>
-                    {criterion.hints?.length ? (
-                      <p className="jury-feedback-hints muted">
-                        {criterion.hints.join(" · ")}
-                      </p>
-                    ) : null}
                   </li>
                 ))}
               </ul>
-
-              {focus.length > 0 ? (
-                <div className="jury-feedback-improve">
-                  <p className="jury-feedback-improve-title">À travailler</p>
-                  <ul>
-                    {focus.map((criterion) => (
-                      <li key={criterion.key}>
-                        <strong>{criterion.label}</strong>
-                        {criterion.hints?.length
-                          ? ` · ${criterion.hints.join(", ")}`
-                          : ` · viser plus près de /${criterion.max}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="jury-feedback-solid">
-                  Solide sur tous les critères de cette phase.
-                </p>
-              )}
 
               {showPerJury ? (
                 <div className="jury-feedback-jurors">

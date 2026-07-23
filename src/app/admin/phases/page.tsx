@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
@@ -201,7 +202,11 @@ export default async function AdminPhasesPage() {
     <main>
       <h1 className="page-title">Phases</h1>
       <p className="muted">
-        Active une phase, puis ouvre ou bloque les votes quand tu veux.
+        Active une phase, puis ouvre ou bloque les votes quand tu veux. Détail
+        des notes :{" "}
+        <Link href="/admin/notes" className="btn-ghost">
+          Notes jury
+        </Link>
       </p>
 
       <div className="phase-grid admin-phase-grid">

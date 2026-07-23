@@ -219,6 +219,12 @@ export default async function CandidatePage({ params }: Props) {
     orderBy: { phase: { number: "asc" } },
   });
 
+  const totalPlays = tracks.reduce((sum, track) => sum + track.playCount, 0);
+  const totalLikes = tracks.reduce(
+    (sum, track) => sum + track._count.likes,
+    0,
+  );
+
   return (
     <main className="shell candidate-hero">
       <BackNav />
@@ -250,12 +256,20 @@ export default async function CandidatePage({ params }: Props) {
               <strong>{formatVotes(candidate.totalVotes)}</strong>
             </div>
             <div>
+              <p className="muted">Écoutes totales</p>
+              <strong>{formatVotes(totalPlays)}</strong>
+            </div>
+            <div>
+              <p className="muted">Likes totaux</p>
+              <strong>{formatVotes(totalLikes)}</strong>
+            </div>
+            <div>
               <p className="muted">Gains artiste</p>
               <strong>{formatXaf(candidate.totalEarnedXaf)}</strong>
             </div>
             {currentScore?.rank ? (
               <div>
-                <p className="muted">Rang phase</p>
+                <p className="muted">Rang parcours</p>
                 <strong>#{currentScore.rank}</strong>
               </div>
             ) : null}

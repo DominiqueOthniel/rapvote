@@ -472,7 +472,7 @@ export async function getTodayBuzz(args?: {
     ...(args?.trackIds?.length ? { id: { in: args.trackIds } } : {}),
   };
 
-  const [playsToday, likesToday, playsByTrack, likesByTrack] =
+  const [playsToday, likesToday, playsByTrack, likesByTrack, totals] =
     await Promise.all([
       prisma.trackPlayEvent.count({
         where: {
@@ -510,6 +510,17 @@ export async function getTodayBuzz(args?: {
         },
         _count: { _all: true },
       }),
+      Promise.all([
+        prisma.phaseTrack.aggregate({
+          where: trackFilter,
+          _sum: { playCount: true },
+        }),
+        prisma.trackLike.count({
+          where: Object.keys(trackFilter).length
+            ? { track: trackFilter }
+            : {},
+        }),
+      ]),
     ]);
 
   const byTrack: Record<string, { plays: number; likes: number }> = {};
@@ -526,5 +537,14 @@ export async function getTodayBuzz(args?: {
     };
   }
 
-  return { playsToday, likesToday, byTrack, since: since.toISOString() };
+  const [playsAgg, likesTotal] = totals;
+
+  return {
+    playsToday,
+    likesToday,
+    playsTotal: playsAgg._sum.playCount ?? 0,
+    likesTotal,
+    byTrack,
+    since: since.toISOString(),
+  };
 }

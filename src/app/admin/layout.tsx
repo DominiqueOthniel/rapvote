@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/candidats", label: "Candidats" },
   { href: "/admin/auditeurs", label: "Auditeurs" },
   { href: "/admin/phases", label: "Phases" },
+  { href: "/admin/notes", label: "Notes jury" },
   { href: "/admin/paiements", label: "Paiements" },
   { href: "/admin/versements", label: "Versements" },
   { href: "/admin/compte", label: "Mon compte" },

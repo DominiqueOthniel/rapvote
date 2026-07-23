@@ -4425,6 +4425,14 @@ select:focus-visible {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.today-buzz-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .today-buzz-pulse {
   width: 0.55rem;
   height: 0.55rem;
@@ -4502,8 +4510,76 @@ select:focus-visible {
   max-height: min(48vh, 22rem);
 }
 
-/* Home tabs + full library */
-.fan-home-tabs {
+/* Admin jury notes */
+.admin-notes-phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 1.25rem 0 1rem;
+}
+
+.admin-notes-phase {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.admin-notes-phase.is-selected {
+  border-color: rgba(214, 255, 63, 0.45);
+  background: rgba(214, 255, 63, 0.08);
+  color: var(--lime);
+}
+
+.admin-notes-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-notes-list {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.admin-notes-artist {
+  padding: 0.9rem 0 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-notes-artist:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-notes-artist-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.admin-notes-artist-head h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1.05rem;
+}
+
+.admin-notes-table td,
+.admin-notes-table th {
+  white-space: nowrap;
+}
+
+.admin-notes-total-row td {
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+}
   display: flex;
   gap: 0.4rem;
   margin: 0 0 1.15rem;

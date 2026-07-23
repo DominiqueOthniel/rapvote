@@ -6,6 +6,8 @@ import { formatVotes } from "@/lib/money";
 export type BuzzState = {
   playsToday: number;
   likesToday: number;
+  playsTotal: number;
+  likesTotal: number;
   byTrack: Record<string, { plays: number; likes: number }>;
 };
 
@@ -16,6 +18,8 @@ export function useTodayBuzz(
   const [buzz, setBuzz] = useState<BuzzState>({
     playsToday: 0,
     likesToday: 0,
+    playsTotal: 0,
+    likesTotal: 0,
     byTrack: {},
   });
 
@@ -39,6 +43,8 @@ export function useTodayBuzz(
         setBuzz({
           playsToday: data.playsToday ?? 0,
           likesToday: data.likesToday ?? 0,
+          playsTotal: data.playsTotal ?? 0,
+          likesTotal: data.likesTotal ?? 0,
           byTrack: data.byTrack ?? {},
         });
       } catch {
@@ -68,13 +74,23 @@ export function TodayBuzzBanner({ buzz }: { buzz: BuzzState }) {
   return (
     <div className="today-buzz-banner" aria-live="polite">
       <span className="today-buzz-pulse" aria-hidden="true" />
-      <div>
-        <p className="today-buzz-label">Aujourd&apos;hui sur la scène</p>
-        <p className="today-buzz-stats">
-          <strong>{formatVotes(buzz.playsToday)}</strong> écoutes
-          <span className="muted"> · </span>
-          <strong>{formatVotes(buzz.likesToday)}</strong> likes
-        </p>
+      <div className="today-buzz-cols">
+        <div>
+          <p className="today-buzz-label">Aujourd&apos;hui sur la scène</p>
+          <p className="today-buzz-stats">
+            <strong>{formatVotes(buzz.playsToday)}</strong> écoutes
+            <span className="muted"> · </span>
+            <strong>{formatVotes(buzz.likesToday)}</strong> likes
+          </p>
+        </div>
+        <div>
+          <p className="today-buzz-label">Total</p>
+          <p className="today-buzz-stats">
+            <strong>{formatVotes(buzz.playsTotal)}</strong> écoutes
+            <span className="muted"> · </span>
+            <strong>{formatVotes(buzz.likesTotal)}</strong> likes
+          </p>
+        </div>
       </div>
     </div>
   );
