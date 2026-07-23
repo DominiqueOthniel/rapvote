@@ -387,6 +387,13 @@ export default async function AdminPhasesPage() {
                         <td>
                           <strong>{formatScore(finalScore)}</strong>
                         </td>
+                        <td>
+                          {entry.lateSubmission ? (
+                            <span className="track-late-flag">-1.5</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td>{entry.status}</td>
                         <td>
                           {isActive ? (

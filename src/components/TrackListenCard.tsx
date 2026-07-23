@@ -96,6 +96,14 @@ export function TrackListenCard({
 
   async function onDownload() {
     if (busyDownload) return;
+    if (locked) {
+      setLikeHint(listenLockedMessage ?? "Ce son est encore sous cadenas.");
+      return;
+    }
+    if (!audioUrl) {
+      setLikeHint("Audio indisponible pour le moment.");
+      return;
+    }
     setBusyDownload(true);
     setLikeHint(null);
 

@@ -2525,9 +2525,79 @@ select:focus-visible {
 }
 
 .track-listen-player {
+  position: relative;
   padding: 1rem;
   border: 1px solid var(--line);
   background: rgba(12, 11, 10, 0.45);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.track-lock-overlay {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(214, 255, 63, 0.35);
+  background:
+    linear-gradient(135deg, rgba(214, 255, 63, 0.1), transparent 55%),
+    rgba(12, 11, 10, 0.88);
+}
+
+.track-lock-overlay.is-compact {
+  padding: 0.55rem 0.7rem;
+  font-size: 0.86rem;
+}
+
+.track-lock-icon {
+  color: var(--lime);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.track-lock-overlay strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.track-late-flag {
+  margin: 0;
+  color: #ff8a8a;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.deadline-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.deadline-form-head .admin-form-title {
+  margin-bottom: 0.35rem;
+}
+
+.deadline-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.deadline-current {
+  margin: 0;
+}
+
+.jury-track-listen {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.jury-preview-flag {
+  margin: 0;
+  color: var(--lime);
+  font-weight: 650;
 }
 
 .track-listen-audio {
