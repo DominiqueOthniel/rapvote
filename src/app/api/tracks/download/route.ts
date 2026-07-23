@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
+  getAdminSession,
+  getCandidateSession,
+  getFanSession,
+  getJurySession,
+} from "@/lib/auth";
+import {
   createCandidateNotification,
   trackLabel,
 } from "@/lib/candidate-notifications";
 import { prisma } from "@/lib/db";
+import {
+  getTrackListenState,
+  type ListenRole,
+} from "@/lib/submission-deadline";
 
 const BUCKET = "candidates";
 
@@ -51,17 +61,54 @@ export async function GET(request: Request) {
 
   const track = await prisma.phaseTrack.findUnique({
     where: { id: trackId },
-    select: { id: true, audioUrl: true, title: true, candidateId: true },
+    select: {
+      id: true,
+      audioUrl: true,
+      title: true,
+      candidateId: true,
+      phase: { select: { submissionDeadlineAt: true } },
+    },
   });
   if (!track) {
     return NextResponse.json({ error: "Son introuvable" }, { status: 404 });
   }
 
-  const updated = await prisma.phaseTrack.update({
-    where: { id: track.id },
-    data: { downloadCount: { increment: 1 } },
-    select: { downloadCount: true },
+  const [fan, jury, admin, candidate] = await Promise.all([
+    getFanSession(),
+    getJurySession(),
+    getAdminSession(),
+    getCandidateSession(),
+  ]);
+
+  let role: ListenRole = "public";
+  if (admin) role = "admin";
+  else if (candidate?.id === track.candidateId) role = "owner";
+  else if (jury) role = "jury";
+
+  const listen = getTrackListenState({
+    deadline: track.phase.submissionDeadlineAt,
+    role,
   });
+  if (!listen.canListen) {
+    return NextResponse.json(
+      { error: listen.message ?? "Son verrouillé jusqu'au délai" },
+      { status: 403 },
+    );
+  }
+
+  const [updated] = await Promise.all([
+    prisma.phaseTrack.update({
+      where: { id: track.id },
+      data: { downloadCount: { increment: 1 } },
+      select: { downloadCount: true },
+    }),
+    prisma.trackDownloadEvent.create({
+      data: {
+        trackId: track.id,
+        fanId: fan?.id ?? null,
+      },
+    }),
+  ]);
 
   await createCandidateNotification({
     candidateId: track.candidateId,

@@ -199,8 +199,34 @@ const RUBRICS: RubricDef[] = [
   },
 ];
 
+const CRITERION_HINTS: Record<string, string[]> = {
+  technique: ["Placement", "Respiration", "Maîtrise du rythme", "Fluidité"],
+  flow: ["Variations", "Énergie", "Musicalité", "Maîtrise de la prod"],
+  ecriture: ["Richesse des rimes", "Punchlines", "Construction", "Originalité"],
+  interpretation: ["Émotions", "Présence vocale", "Intentions", "Conviction"],
+  impact: ["Identité", "Charisme", "Rejouabilité", "Impression générale"],
+  originalite: ["Signature", "Prises de risque", "Différenciation"],
+  presence: ["Charisme", "Conviction", "Tenue du morceau"],
+  theme: ["Clarté du message", "Lien avec le thème", "Profondeur"],
+  emotions: ["Sincérité", "Intensité", "Connexion"],
+  adaptation: ["Souplesse", "Réactivité", "Sortie de zone"],
+  creativite: ["Idées neuves", "Angles inattendus"],
+  complementarite: ["Équilibre", "Écoute mutuelle", "Cohésion"],
+  transitions: ["Enchaînements", "Continuum musical"],
+  qualite: ["Prod", "Mix", "Finition"],
+  communication: ["Échanges", "Complicité artistique"],
+};
+
 export function getRubricForPhase(phaseNumber: number): RubricDef {
-  return RUBRICS.find((r) => r.phaseNumber === phaseNumber) ?? UNIVERSAL_RUBRIC;
+  const base =
+    RUBRICS.find((r) => r.phaseNumber === phaseNumber) ?? UNIVERSAL_RUBRIC;
+  return {
+    ...base,
+    criteria: base.criteria.map((criterion) => ({
+      ...criterion,
+      hints: criterion.hints ?? CRITERION_HINTS[criterion.key],
+    })),
+  };
 }
 
 export function rubricTotalMax(rubric: RubricDef): number {

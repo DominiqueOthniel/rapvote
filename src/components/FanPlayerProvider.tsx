@@ -21,6 +21,8 @@ export type FanPlayerTrack = {
   likeCount: number;
   likedByFan: boolean;
   lyrics?: string | null;
+  listenUnlockAt?: string | null;
+  listenLockedMessage?: string | null;
 };
 
 type FanPlayerContextValue = {
@@ -167,6 +169,22 @@ export function FanPlayerProvider({ children }: { children: ReactNode }) {
     (next: FanPlayerTrack, nextQueue?: FanPlayerTrack[]) => {
       const audio = audioRef.current;
       if (!audio) return;
+
+      if (
+        next.listenUnlockAt &&
+        Date.now() < new Date(next.listenUnlockAt).getTime()
+      ) {
+        window.dispatchEvent(
+          new CustomEvent("ftc:track-locked", {
+            detail: {
+              message:
+                next.listenLockedMessage ??
+                "Ce son est encore sous cadenas.",
+            },
+          }),
+        );
+        return;
+      }
 
       if (nextQueue) setQueue(nextQueue);
       if (trackIdRef.current !== next.id) {

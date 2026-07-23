@@ -9,6 +9,8 @@ import {
   type FanPlayerTrack,
 } from "@/components/FanPlayerProvider";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
+import { TrackLockOverlay } from "@/components/TrackLockOverlay";
+import { LATE_SUBMISSION_PENALTY } from "@/lib/scoring";
 
 type Props = {
   trackId: string;
@@ -24,6 +26,9 @@ type Props = {
   candidateSlug: string;
   candidateName: string;
   candidatePhotoUrl: string | null;
+  listenUnlockAt?: string | null;
+  listenLockedMessage?: string | null;
+  lateSubmission?: boolean;
 };
 
 export function TrackListenCard({
@@ -40,6 +45,9 @@ export function TrackListenCard({
   candidateSlug,
   candidateName,
   candidatePhotoUrl,
+  listenUnlockAt = null,
+  listenLockedMessage = null,
+  lateSubmission = false,
 }: Props) {
   const router = useRouter();
   const player = useFanPlayerOptional();
@@ -56,9 +64,16 @@ export function TrackListenCard({
   const isPlaying = Boolean(isActive && player?.isPlaying);
   const livePlays = player?.playCounts[trackId];
   const shownPlays = typeof livePlays === "number" ? livePlays : initialPlays;
+  const locked =
+    Boolean(listenUnlockAt) &&
+    Date.now() < new Date(listenUnlockAt as string).getTime();
 
   function onPlayClick() {
     if (!player) return;
+    if (locked) {
+      setLikeHint(listenLockedMessage ?? "Ce son est encore sous cadenas.");
+      return;
+    }
     const next: FanPlayerTrack = {
       id: trackId,
       title: displayTitle,
@@ -69,6 +84,8 @@ export function TrackListenCard({
       likeCount: likes,
       likedByFan: liked,
       lyrics,
+      listenUnlockAt,
+      listenLockedMessage,
     };
     if (isActive) {
       player.toggle();
@@ -190,6 +207,17 @@ export function TrackListenCard({
       <div className={hasLyrics ? "track-listen-grid" : "track-listen-solo"}>
         <div className="track-listen-player">
           <p className="track-listen-kicker">Écoute</p>
+          {locked && listenUnlockAt ? (
+            <TrackLockOverlay
+              unlockAt={listenUnlockAt}
+              message={listenLockedMessage}
+            />
+          ) : null}
+          {lateSubmission ? (
+            <p className="track-late-flag">
+              Retard · -{LATE_SUBMISSION_PENALTY} sur la note de phase
+            </p>
+          ) : null}
           {player ? (
             <button
               type="button"
@@ -197,10 +225,17 @@ export function TrackListenCard({
                 isPlaying ? " is-playing" : ""
               }`}
               onClick={onPlayClick}
+              disabled={locked}
             >
-              {isPlaying ? "Pause" : isActive ? "Reprendre" : "Écouter"}
+              {locked
+                ? "Cadenas"
+                : isPlaying
+                  ? "Pause"
+                  : isActive
+                    ? "Reprendre"
+                    : "Écouter"}
             </button>
-          ) : (
+          ) : locked ? null : (
             <audio
               controls
               preload="none"

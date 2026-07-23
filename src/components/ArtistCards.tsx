@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useId } from "react";
 import { formatVotes } from "@/lib/money";
-import { formatJuryNote } from "@/lib/jury-score";
+import { formatJuryNote, formatParcoursNote } from "@/lib/jury-score";
 
 export type ArtistCardData = {
   slug: string;
@@ -15,6 +15,8 @@ export type ArtistCardData = {
   votesCount?: number;
   juryScore?: number;
   juryRatedCount?: number;
+  cumulativeScore?: number;
+  scoringPhaseCount?: number;
   trackCount?: number;
   rank?: number;
   eliminated?: boolean;
@@ -217,6 +219,17 @@ export function ArtistCards({ artists }: Props) {
                     ) : (
                       <strong>Profil</strong>
                     )}
+                    {typeof artist.cumulativeScore === "number" &&
+                    typeof artist.scoringPhaseCount === "number" &&
+                    artist.scoringPhaseCount > 0 ? (
+                      <span className="artist-card-cumul-line">
+                        Parcours{" "}
+                        {formatParcoursNote(
+                          artist.cumulativeScore,
+                          artist.scoringPhaseCount,
+                        )}
+                      </span>
+                    ) : null}
                     {hasJuryField ? (
                       <span className="artist-card-jury-line">
                         {juryPending

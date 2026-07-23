@@ -14,6 +14,7 @@ import {
   todayTrackBuzz,
   useTodayBuzz,
 } from "@/components/TodayBuzz";
+import { TrackLockOverlay } from "@/components/TrackLockOverlay";
 import { formatVotes } from "@/lib/money";
 
 export type SonsFeedItem = {
@@ -26,6 +27,9 @@ export type SonsFeedItem = {
   phaseId: string;
   phaseLabel: string;
   lyrics: string | null;
+  listenUnlockAt?: string | null;
+  listenLockedMessage?: string | null;
+  lateSubmission?: boolean;
   candidate: {
     slug: string;
     stageName: string;
@@ -56,6 +60,8 @@ function toPlayerTrack(item: SonsFeedItem): FanPlayerTrack {
     likeCount: item.likeCount,
     likedByFan: item.likedByFan,
     lyrics: item.lyrics,
+    listenUnlockAt: item.listenUnlockAt,
+    listenLockedMessage: item.listenLockedMessage,
   };
 }
 
@@ -63,11 +69,13 @@ export function SonsFeed({
   tracks,
   phases,
   fanLoggedIn,
-  activePhaseId: _activePhaseId = null,
+  activePhaseId = null,
 }: Props) {
   const router = useRouter();
   const { track, isPlaying, playTrack, toggle, playCounts } = useFanPlayer();
-  const [phaseFilter, setPhaseFilter] = useState<string>("all");
+  const [phaseFilter, setPhaseFilter] = useState<string>(
+    () => activePhaseId ?? "all",
+  );
   const [likes, setLikes] = useState(() =>
     Object.fromEntries(tracks.map((t) => [t.id, t.likeCount])),
   );
@@ -96,6 +104,13 @@ export function SonsFeed({
   const buzz = useTodayBuzz(buzzPhaseId, buzzTrackIds);
 
   function onRowPlay(item: SonsFeedItem) {
+    if (
+      item.listenUnlockAt &&
+      Date.now() < new Date(item.listenUnlockAt).getTime()
+    ) {
+      setHint(item.listenLockedMessage ?? "Ce son est encore sous cadenas.");
+      return;
+    }
     if (track?.id === item.id) {
       toggle();
       return;
@@ -192,24 +207,31 @@ export function SonsFeed({
                 item.title.trim() || `Son · ${item.candidate.stageName}`;
               const plays = playCounts[item.id] ?? item.playCount;
               const dayBuzz = todayTrackBuzz(buzz.byTrack, item.id);
+              const locked =
+                Boolean(item.listenUnlockAt) &&
+                Date.now() < new Date(item.listenUnlockAt as string).getTime();
 
               return (
                 <li key={item.id}>
                   <div
                     className={`sons-row${active ? " is-active" : ""}${
                       playing ? " is-playing" : ""
-                    }`}
+                    }${locked ? " is-locked" : ""}`}
                   >
                     <button
                       type="button"
                       className="sons-row-play"
                       onClick={() => onRowPlay(item)}
                       aria-label={
-                        playing ? `Pause ${title}` : `Écouter ${title}`
+                        locked
+                          ? `Verrouillé ${title}`
+                          : playing
+                            ? `Pause ${title}`
+                            : `Écouter ${title}`
                       }
                     >
                       <span className="sons-col-num">
-                        {playing ? "❚❚" : active ? "▶" : index + 1}
+                        {locked ? "⊘" : playing ? "❚❚" : active ? "▶" : index + 1}
                       </span>
                     </button>
 
@@ -254,6 +276,13 @@ export function SonsFeed({
                         <span className="muted sons-phase">
                           {item.phaseLabel}
                         </span>
+                        {locked && item.listenUnlockAt ? (
+                          <TrackLockOverlay
+                            unlockAt={item.listenUnlockAt}
+                            message={item.listenLockedMessage}
+                            compact
+                          />
+                        ) : null}
                         {dayBuzz.plays > 0 || dayBuzz.likes > 0 ? (
                           <span className="sons-day-buzz">
                             +{formatVotes(dayBuzz.plays)} éc. auj.

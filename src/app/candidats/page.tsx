@@ -1,21 +1,22 @@
 import { ArtistCards } from "@/components/ArtistCards";
 import {
   getActiveSeason,
-  getCurrentPhase,
-  getPhaseEntries,
+  getCompetitionStandings,
 } from "@/lib/competition";
 import { getEpisodeByNumber } from "@/lib/parcours";
 import { prisma } from "@/lib/db";
+import { formatParcoursNote } from "@/lib/jury-score";
 
 export const dynamic = "force-dynamic";
 
 export default async function CandidatsPage() {
   const season = await getActiveSeason();
-  const phase = season ? await getCurrentPhase(season.id) : null;
-  const entries = phase ? await getPhaseEntries(phase.id) : [];
+  const { phase, standings, scoringPhaseCount } = season
+    ? await getCompetitionStandings(season.id)
+    : { phase: null, standings: [], scoringPhaseCount: 0 };
   const episode = phase ? getEpisodeByNumber(phase.number) : null;
 
-  const candidateIds = entries.map((entry) => entry.candidate.id);
+  const candidateIds = standings.map((entry) => entry.candidate.id);
   const trackGroups =
     candidateIds.length > 0
       ? await prisma.phaseTrack.groupBy({
@@ -29,7 +30,7 @@ export default async function CandidatsPage() {
   );
 
   let activeRank = 0;
-  const artists = entries.map((entry) => ({
+  const artists = standings.map((entry) => ({
     slug: entry.candidate.slug,
     stageName: entry.candidate.stageName,
     city: entry.candidate.city,
@@ -38,10 +39,14 @@ export default async function CandidatsPage() {
     votesCount: entry.votesCount,
     juryScore: entry.juryScore,
     juryRatedCount: entry._count.juryScores,
+    cumulativeScore: entry.cumulativeScore,
+    scoringPhaseCount,
     trackCount: trackCountById[entry.candidate.id] ?? 0,
     rank: entry.status === "active" ? ++activeRank : undefined,
     eliminated: entry.status === "eliminated",
   }));
+
+  const leader = artists.find((a) => a.rank === 1);
 
   return (
     <main className="shell section">
@@ -55,6 +60,12 @@ export default async function CandidatsPage() {
                 : "Candidats"}
           </p>
           <h1 className="page-title">Candidats</h1>
+          <p className="muted">
+            Classement parcours · points / {100 * scoringPhaseCount} (hors E0)
+            {leader
+              ? ` · leader ${formatParcoursNote(leader.cumulativeScore ?? 0, scoringPhaseCount)}`
+              : ""}
+          </p>
         </div>
       </div>
       <ArtistCards artists={artists} />

@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/db";
-import { asJuryScoreOutOf100 } from "@/lib/jury-score";
-import { sortByFinalScore } from "@/lib/scoring";
+import {
+  asJuryScoreOutOf100,
+  isScoringPhaseNumber,
+} from "@/lib/jury-score";
+import {
+  getMaxVotes,
+  phaseFinalScore,
+  sortByFinalScore,
+} from "@/lib/scoring";
 import { DEFAULT_VOTE_PACKS } from "@/lib/vote-packs";
 import { ensureSeasonVotePackages } from "@/lib/ensure-vote-packages";
 
@@ -75,14 +82,24 @@ export async function getPhaseRanking(phaseId: string) {
   await syncPhaseEntryVotes(phaseId);
 
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
-  const entries = await prisma.phaseEntry.findMany({
-    where: { phaseId, status: "active" },
-    include: { candidate: true },
-  });
+  const [entries, tracks] = await Promise.all([
+    prisma.phaseEntry.findMany({
+      where: { phaseId, status: "active" },
+      include: { candidate: true },
+    }),
+    prisma.phaseTrack.findMany({
+      where: { phaseId },
+      select: { candidateId: true, lateSubmission: true },
+    }),
+  ]);
+  const lateByCandidate = new Map(
+    tracks.map((track) => [track.candidateId, track.lateSubmission]),
+  );
 
   const scored = entries.map((entry) => ({
     ...entry,
     votesCount: cumulativeVotes(entry),
+    lateSubmission: lateByCandidate.get(entry.candidateId) ?? false,
   }));
 
   return sortByFinalScore(scored, phase?.number ?? 0);
@@ -92,18 +109,28 @@ export async function getPhaseEntries(phaseId: string) {
   await syncPhaseEntryVotes(phaseId);
 
   const phase = await prisma.phase.findUnique({ where: { id: phaseId } });
-  const entries = await prisma.phaseEntry.findMany({
-    where: { phaseId },
-    include: {
-      candidate: true,
-      _count: { select: { juryScores: true } },
-    },
-  });
+  const [entries, tracks] = await Promise.all([
+    prisma.phaseEntry.findMany({
+      where: { phaseId },
+      include: {
+        candidate: true,
+        _count: { select: { juryScores: true } },
+      },
+    }),
+    prisma.phaseTrack.findMany({
+      where: { phaseId },
+      select: { candidateId: true, lateSubmission: true },
+    }),
+  ]);
+  const lateByCandidate = new Map(
+    tracks.map((track) => [track.candidateId, track.lateSubmission]),
+  );
 
   const phaseNumber = phase?.number ?? 0;
   const withVotes = entries.map((entry) => ({
     ...entry,
     votesCount: cumulativeVotes(entry),
+    lateSubmission: lateByCandidate.get(entry.candidateId) ?? false,
   }));
   const active = sortByFinalScore(
     withVotes.filter((entry) => entry.status === "active"),
@@ -114,6 +141,143 @@ export async function getPhaseEntries(phaseId: string) {
     .sort((a, b) => b.votesCount - a.votesCount);
 
   return [...active, ...eliminated];
+}
+
+/**
+ * Points cumulés sur le parcours (somme des scores), hors phase 0.
+ */
+export async function getCandidateCumulativeScores(seasonId: string) {
+  const phases = await prisma.phase.findMany({
+    where: { seasonId },
+    select: { id: true, number: true },
+    orderBy: { number: "asc" },
+  });
+
+  const scoringPhases = phases.filter((phase) =>
+    isScoringPhaseNumber(phase.number),
+  );
+  const scoringPhaseCount = scoringPhases.length;
+
+  if (scoringPhases.length === 0) {
+    return {
+      scores: new Map<string, number>(),
+      scoringPhaseCount: 0,
+    };
+  }
+
+  await Promise.all(scoringPhases.map((phase) => syncPhaseEntryVotes(phase.id)));
+
+  const scoringPhaseIds = new Set(scoringPhases.map((phase) => phase.id));
+  const [entries, tracks] = await Promise.all([
+    prisma.phaseEntry.findMany({
+      where: { phaseId: { in: [...scoringPhaseIds] } },
+      include: {
+        candidate: { select: { id: true, totalVotes: true } },
+        phase: { select: { id: true, number: true } },
+      },
+    }),
+    prisma.phaseTrack.findMany({
+      where: { phaseId: { in: [...scoringPhaseIds] } },
+      select: {
+        candidateId: true,
+        phaseId: true,
+        lateSubmission: true,
+      },
+    }),
+  ]);
+
+  const lateByEntry = new Map(
+    tracks.map((track) => [
+      `${track.candidateId}:${track.phaseId}`,
+      track.lateSubmission,
+    ]),
+  );
+
+  const maxVotesByPhase = new Map<string, number>();
+  const byPhase = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const list = byPhase.get(entry.phaseId) ?? [];
+    list.push(entry);
+    byPhase.set(entry.phaseId, list);
+  }
+
+  for (const [phaseId, list] of byPhase) {
+    maxVotesByPhase.set(
+      phaseId,
+      getMaxVotes(
+        list.map((entry) => ({
+          votesCount: cumulativeVotes(entry),
+          juryScore: entry.juryScore,
+        })),
+      ),
+    );
+  }
+
+  const scores = new Map<string, number>();
+  for (const entry of entries) {
+    if (!isScoringPhaseNumber(entry.phase.number)) continue;
+    const score = phaseFinalScore(
+      {
+        votesCount: cumulativeVotes(entry),
+        juryScore: entry.juryScore,
+        lateSubmission:
+          lateByEntry.get(`${entry.candidateId}:${entry.phaseId}`) ?? false,
+      },
+      maxVotesByPhase.get(entry.phaseId) ?? 0,
+      entry.phase.number,
+    );
+    scores.set(entry.candidateId, (scores.get(entry.candidateId) ?? 0) + score);
+  }
+
+  return { scores, scoringPhaseCount };
+}
+
+/** Classement compétition: points cumulés du parcours, phase courante pour le roster. */
+export async function getCompetitionStandings(seasonId: string) {
+  const phase = await getCurrentPhase(seasonId);
+  if (!phase) {
+    return {
+      phase: null,
+      scoringPhaseCount: 0,
+      standings: [] as Array<
+        Awaited<ReturnType<typeof getPhaseEntries>>[number] & {
+          cumulativeScore: number;
+        }
+      >,
+    };
+  }
+
+  const [entries, board] = await Promise.all([
+    getPhaseEntries(phase.id),
+    getCandidateCumulativeScores(seasonId),
+  ]);
+
+  const standings = [...entries]
+    .map((entry) => ({
+      ...entry,
+      cumulativeScore: board.scores.get(entry.candidateId) ?? 0,
+    }))
+    .sort((a, b) => {
+      const activeA = a.status === "active";
+      const activeB = b.status === "active";
+      if (activeA !== activeB) return activeA ? -1 : 1;
+
+      if (b.cumulativeScore !== a.cumulativeScore) {
+        return b.cumulativeScore - a.cumulativeScore;
+      }
+
+      const juryA = asJuryScoreOutOf100(a.juryScore);
+      const juryB = asJuryScoreOutOf100(b.juryScore);
+      if (juryB !== juryA) return juryB - juryA;
+
+      return b.votesCount - a.votesCount;
+    });
+
+  return {
+    phase,
+    standings,
+    scoringPhaseCount: board.scoringPhaseCount,
+  };
 }
 
 export async function getSeasonTracksFeed(
@@ -143,7 +307,13 @@ export async function getSeasonTracksFeed(
         },
       },
       phase: {
-        select: { id: true, number: true, title: true, theme: true },
+        select: {
+          id: true,
+          number: true,
+          title: true,
+          theme: true,
+          submissionDeadlineAt: true,
+        },
       },
       likes: fanId
         ? { where: { fanId }, select: { id: true } }
@@ -152,10 +322,15 @@ export async function getSeasonTracksFeed(
     },
   });
 
-  return sortTracksByRanking(tracks);
+  const board = await getCandidateCumulativeScores(seasonId);
+  return sortTracksByRanking(tracks, board.scores);
 }
 
 export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null) {
+  const phase = await prisma.phase.findUnique({
+    where: { id: phaseId },
+    select: { id: true, seasonId: true },
+  });
   const tracks = await prisma.phaseTrack.findMany({
     where: {
       phaseId,
@@ -188,7 +363,13 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
         },
       },
       phase: {
-        select: { id: true, number: true, title: true, theme: true },
+        select: {
+          id: true,
+          number: true,
+          title: true,
+          theme: true,
+          submissionDeadlineAt: true,
+        },
       },
       likes: fanId
         ? { where: { fanId }, select: { id: true } }
@@ -197,7 +378,10 @@ export async function getPhaseTracksFeed(phaseId: string, fanId?: string | null)
     },
   });
 
-  return sortTracksByRanking(tracks);
+  const board = phase
+    ? await getCandidateCumulativeScores(phase.seasonId)
+    : { scores: new Map<string, number>(), scoringPhaseCount: 0 };
+  return sortTracksByRanking(tracks, board.scores);
 }
 
 type TrackRankInput = {
@@ -205,34 +389,41 @@ type TrackRankInput = {
   phaseId: string;
   phase: { number: number };
   candidate: {
+    id: string;
     stageName: string;
     entries: Array<{
       phaseId: string;
       votesCount: number;
       juryScore: number;
+      status?: string;
     }>;
   };
 };
 
-/** Classement feed: jury ↓, votes ↓, streams ↓. */
-function sortTracksByRanking<T extends TrackRankInput>(tracks: T[]): T[] {
+/**
+ * Sons des premiers au classement parcours (points cumulés) en tête.
+ */
+function sortTracksByRanking<T extends TrackRankInput>(
+  tracks: T[],
+  cumulative: Map<string, number>,
+): T[] {
   return [...tracks].sort((a, b) => {
     const entryA = a.candidate.entries.find((e) => e.phaseId === a.phaseId);
     const entryB = b.candidate.entries.find((e) => e.phaseId === b.phaseId);
+    const activeA = entryA?.status !== "eliminated";
+    const activeB = entryB?.status !== "eliminated";
+    if (activeA !== activeB) return activeA ? -1 : 1;
 
-    const juryA = asJuryScoreOutOf100(entryA?.juryScore ?? 0);
-    const juryB = asJuryScoreOutOf100(entryB?.juryScore ?? 0);
-    if (juryB !== juryA) return juryB - juryA;
+    const scoreA = cumulative.get(a.candidate.id) ?? 0;
+    const scoreB = cumulative.get(b.candidate.id) ?? 0;
+    if (scoreB !== scoreA) return scoreB - scoreA;
 
-    const votesA = entryA?.votesCount ?? 0;
-    const votesB = entryB?.votesCount ?? 0;
-    if (votesB !== votesA) return votesB - votesA;
-
-    if (b.playCount !== a.playCount) return b.playCount - a.playCount;
-
+    // Même rang parcours: épisode récent, puis streams
     if (b.phase.number !== a.phase.number) {
       return b.phase.number - a.phase.number;
     }
+
+    if (b.playCount !== a.playCount) return b.playCount - a.playCount;
 
     return a.candidate.stageName.localeCompare(b.candidate.stageName, "fr");
   });

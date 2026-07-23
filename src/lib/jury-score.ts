@@ -23,3 +23,31 @@ export function formatScore(value: number): string {
 export function formatJuryNote(value: number): string {
   return `${formatScore(asJuryScoreOutOf100(value))}/100`;
 }
+
+/** Maximum de points par phase compétition (hors E0). */
+export const PHASE_SCORE_MAX = 100;
+
+export function isScoringPhaseNumber(phaseNumber: number) {
+  return phaseNumber > 0;
+}
+
+export function parcoursMaxPoints(scoringPhaseCount: number) {
+  return PHASE_SCORE_MAX * Math.max(0, scoringPhaseCount);
+}
+
+/** Affiche pointsActuels / (100 × nombre de phases hors E0). */
+export function formatParcoursNote(
+  points: number,
+  scoringPhaseCount: number,
+): string {
+  return `${formatScore(points)}/${parcoursMaxPoints(scoringPhaseCount)}`;
+}
+
+export function parcoursPercent(
+  points: number,
+  scoringPhaseCount: number,
+): number {
+  const max = parcoursMaxPoints(scoringPhaseCount);
+  if (max <= 0) return 0;
+  return Math.min(100, Math.max(0, (points / max) * 100));
+}

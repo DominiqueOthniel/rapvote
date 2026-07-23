@@ -11,12 +11,17 @@ import {
   type CompetitionPhaseScore,
 } from "@/components/CompetitionScoreboard";
 import {
+  JuryFeedbackDetail,
+  mapJuryNotes,
+} from "@/components/JuryFeedbackDetail";
+import {
   getCandidateSession,
   getFanSession,
 } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   getActiveSeason,
+  getCompetitionStandings,
   getCurrentPhase,
   getPhaseEntries,
 } from "@/lib/competition";
@@ -24,6 +29,7 @@ import { getEpisodeByNumber } from "@/lib/parcours";
 import { EXPECTED_JURY_COUNT } from "@/lib/jury";
 import { getMaxVotes } from "@/lib/scoring";
 import { formatVotes, formatXaf } from "@/lib/money";
+import { getTrackListenState } from "@/lib/submission-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +111,10 @@ export default async function CandidatePage({ params }: Props) {
         include: {
           phase: true,
           _count: { select: { juryScores: true } },
+          juryScores: {
+            include: { jury: { select: { name: true } } },
+            orderBy: { jury: { name: "asc" } },
+          },
         },
         orderBy: { phase: { number: "asc" } },
       })
@@ -112,6 +122,16 @@ export default async function CandidatePage({ params }: Props) {
 
   let currentScore: CompetitionPhaseScore | null = null;
   const history: CompetitionPhaseScore[] = [];
+  const seasonStandings = season
+    ? await getCompetitionStandings(season.id)
+    : null;
+  const overallRankIdx =
+    seasonStandings?.standings.findIndex(
+      (e) => e.candidateId === candidate.id && e.status === "active",
+    ) ?? -1;
+  const overallRank = overallRankIdx >= 0 ? overallRankIdx + 1 : null;
+  const overallFieldSize =
+    seasonStandings?.standings.filter((e) => e.status === "active").length ?? 0;
 
   if (season && seasonEntries.length > 0) {
     const uniquePhaseIds = [...new Set(seasonEntries.map((e) => e.phaseId))];
@@ -133,6 +153,7 @@ export default async function CandidatePage({ params }: Props) {
       );
       const ranked = activeField;
       const rankIdx = ranked.findIndex((e) => e.candidateId === candidate.id);
+      const isCurrent = Boolean(phase && se.phaseId === phase.id);
       const built = buildCompetitionScores({
         phaseNumber: se.phase.number,
         phaseLabel: phaseLabel(se.phase),
@@ -144,12 +165,16 @@ export default async function CandidatePage({ params }: Props) {
           juryRatedCount: se._count.juryScores,
         },
         maxVotes,
-        rank: rankIdx >= 0 ? rankIdx + 1 : null,
-        fieldSize: ranked.length,
+        rank: isCurrent
+          ? overallRank
+          : rankIdx >= 0
+            ? rankIdx + 1
+            : null,
+        fieldSize: isCurrent ? overallFieldSize : ranked.length,
         juryExpected: EXPECTED_JURY_COUNT,
       });
       history.push(built);
-      if (phase && se.phaseId === phase.id) {
+      if (isCurrent) {
         currentScore = built;
       }
     }
@@ -161,7 +186,6 @@ export default async function CandidatePage({ params }: Props) {
     const maxVotes = getMaxVotes(
       activeField.length > 0 ? activeField : phaseField,
     );
-    const rankIdx = activeField.findIndex((e) => e.candidateId === candidate.id);
     currentScore = buildCompetitionScores({
       phaseNumber: phase.number,
       phaseLabel: phaseLabel(phase),
@@ -173,8 +197,8 @@ export default async function CandidatePage({ params }: Props) {
         juryRatedCount: entry._count.juryScores,
       },
       maxVotes,
-      rank: rankIdx >= 0 ? rankIdx + 1 : null,
-      fieldSize: activeField.length,
+      rank: overallRank,
+      fieldSize: overallFieldSize || activeField.length,
       juryExpected: EXPECTED_JURY_COUNT,
     });
   }
@@ -248,6 +272,17 @@ export default async function CandidatePage({ params }: Props) {
         stageName={candidate.stageName}
         current={currentScore}
         history={history}
+        scoringPhaseCount={seasonStandings?.scoringPhaseCount ?? 0}
+      />
+
+      <JuryFeedbackDetail
+        showPerJury={isOwner}
+        phases={seasonEntries.map((se) => ({
+          phaseId: se.phaseId,
+          phaseNumber: se.phase.number,
+          phaseLabel: phaseLabel(se.phase),
+          notes: mapJuryNotes(se.juryScores),
+        }))}
       />
 
       {phase && entry?.status === "active" && phase.votesOpen ? (
@@ -285,13 +320,18 @@ export default async function CandidatePage({ params }: Props) {
           </p>
         ) : (
           <div className="track-list">
-            {tracks.map((track) => (
+            {tracks.map((track) => {
+              const listen = getTrackListenState({
+                deadline: track.phase.submissionDeadlineAt,
+                role: isOwner ? "owner" : "public",
+              });
+              return (
               <article key={track.id} className="track-card">
                 <TrackListenCard
                   trackId={track.id}
                   title={track.title ?? `Son phase ${track.phase.number}`}
                   phaseLabel={`E${track.phase.number} · ${track.phase.theme ?? track.phase.title}`}
-                  audioUrl={track.audioUrl}
+                  audioUrl={listen.canListen ? track.audioUrl : ""}
                   lyrics={track.lyrics}
                   playCount={track.playCount}
                   downloadCount={track.downloadCount}
@@ -303,6 +343,13 @@ export default async function CandidatePage({ params }: Props) {
                   candidateSlug={candidate.slug}
                   candidateName={candidate.stageName}
                   candidatePhotoUrl={candidate.photoUrl}
+                  listenUnlockAt={
+                    listen.locked
+                      ? listen.unlockAt?.toISOString() ?? null
+                      : null
+                  }
+                  listenLockedMessage={listen.message}
+                  lateSubmission={track.lateSubmission}
                 />
                 <TrackComments
                   trackId={track.id}
@@ -317,7 +364,8 @@ export default async function CandidatePage({ params }: Props) {
                   }))}
                 />
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

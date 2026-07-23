@@ -10,6 +10,7 @@ import {
 } from "@/lib/competition";
 import { getFanEngagement } from "@/lib/fan-engagement";
 import { getEpisodeByNumber } from "@/lib/parcours";
+import { getTrackListenState } from "@/lib/submission-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -118,22 +119,33 @@ export default async function HomePage() {
       label: phaseChipLabel(p),
     }));
 
-  const tracks = rawTracks.map((t) => ({
-    id: t.id,
-    title: t.title?.trim() || `Son · ${t.candidate.stageName}`,
-    audioUrl: t.audioUrl,
-    playCount: t.playCount,
-    likeCount: t._count.likes,
-    likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
-    phaseId: t.phaseId,
-    phaseLabel: phaseChipLabel(t.phase),
-    lyrics: t.lyrics,
-    candidate: {
-      slug: t.candidate.slug,
-      stageName: t.candidate.stageName,
-      photoUrl: t.candidate.photoUrl,
-    },
-  }));
+  const tracks = rawTracks.map((t) => {
+    const listen = getTrackListenState({
+      deadline: t.phase.submissionDeadlineAt,
+      role: "public",
+    });
+    return {
+      id: t.id,
+      title: t.title?.trim() || `Son · ${t.candidate.stageName}`,
+      audioUrl: listen.canListen ? t.audioUrl : "",
+      playCount: t.playCount,
+      likeCount: t._count.likes,
+      likedByFan: Array.isArray(t.likes) ? t.likes.length > 0 : false,
+      phaseId: t.phaseId,
+      phaseLabel: phaseChipLabel(t.phase),
+      lyrics: t.lyrics,
+      listenUnlockAt: listen.locked
+        ? listen.unlockAt?.toISOString() ?? null
+        : null,
+      listenLockedMessage: listen.message,
+      lateSubmission: t.lateSubmission,
+      candidate: {
+        slug: t.candidate.slug,
+        stageName: t.candidate.stageName,
+        photoUrl: t.candidate.photoUrl,
+      },
+    };
+  });
 
   return (
     <main className="shell section sons-home">

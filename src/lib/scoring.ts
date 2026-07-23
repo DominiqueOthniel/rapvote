@@ -1,6 +1,8 @@
 import { asJuryScoreOutOf100 } from "@/lib/jury-score";
+import { LATE_SUBMISSION_PENALTY } from "@/lib/submission-deadline";
 
-export { formatJuryNote, formatScore } from "@/lib/jury-score";
+export { formatJuryNote, formatScore, formatParcoursNote } from "@/lib/jury-score";
+export { LATE_SUBMISSION_PENALTY } from "@/lib/submission-deadline";
 
 /** Poids publics classiques (à partir de l'épisode 9). */
 export const VOTE_WEIGHT = 0.15;
@@ -12,6 +14,7 @@ export const PUBLIC_VOTES_FROM_PHASE = 9;
 export type ScoredEntry = {
   votesCount: number;
   juryScore: number;
+  lateSubmission?: boolean;
 };
 
 export function weightsForPhase(phaseNumber: number) {
@@ -55,10 +58,11 @@ export function phaseFinalScore(
   maxVotes: number,
   phaseNumber = PUBLIC_VOTES_FROM_PHASE,
 ): number {
-  return (
+  const base =
     votePoints(entry.votesCount, maxVotes, phaseNumber) +
-    juryPoints(entry.juryScore, phaseNumber)
-  );
+    juryPoints(entry.juryScore, phaseNumber);
+  if (!entry.lateSubmission) return base;
+  return Math.max(0, base - LATE_SUBMISSION_PENALTY);
 }
 
 export function getMaxVotes(entries: ScoredEntry[]): number {

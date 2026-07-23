@@ -1,11 +1,16 @@
 import type { CSSProperties } from "react";
 import {
   formatJuryNote,
+  formatParcoursNote,
   formatScore,
   juryPoints,
   phaseFinalScore,
   votePoints,
 } from "@/lib/scoring";
+import {
+  isScoringPhaseNumber,
+  parcoursPercent,
+} from "@/lib/jury-score";
 import { formatVotes } from "@/lib/money";
 
 export type CompetitionPhaseScore = {
@@ -28,12 +33,14 @@ type Props = {
   stageName: string;
   current: CompetitionPhaseScore | null;
   history: CompetitionPhaseScore[];
+  scoringPhaseCount?: number;
 };
 
 export function CompetitionScoreboard({
   stageName,
   current,
   history,
+  scoringPhaseCount = 0,
 }: Props) {
   if (!current && history.length === 0) {
     return null;
@@ -41,11 +48,23 @@ export function CompetitionScoreboard({
 
   const score = current;
   const juryPending = Boolean(score && score.juryRatedCount === 0);
-  const ringValue = score
-    ? juryPending
-      ? 0
-      : Math.min(100, Math.max(0, score.finalScore))
-    : 0;
+  const scoringHistory = history.filter((item) =>
+    isScoringPhaseNumber(item.phaseNumber),
+  );
+  const phaseCount =
+    scoringPhaseCount > 0 ? scoringPhaseCount : scoringHistory.length;
+  const cumulativeScore = scoringHistory.reduce(
+    (sum, item) => sum + item.finalScore,
+    0,
+  );
+  const hasCumul = scoringHistory.length > 0 || phaseCount > 0;
+  const ringValue = hasCumul
+    ? parcoursPercent(cumulativeScore, phaseCount)
+    : score
+      ? juryPending
+        ? 0
+        : Math.min(100, Math.max(0, score.finalScore))
+      : 0;
 
   return (
     <section className="comp-scoreboard" aria-label="Points compétition">
@@ -65,15 +84,19 @@ export function CompetitionScoreboard({
             }
           >
             <div className="comp-score-ring-inner">
-              {juryPending ? (
+              {juryPending && !hasCumul ? (
                 <>
                   <strong className="comp-score-pending">—</strong>
                   <span>Jury</span>
                 </>
               ) : (
                 <>
-                  <strong>{formatScore(score.finalScore)}</strong>
-                  <span>Score</span>
+                  <strong>
+                    {hasCumul
+                      ? formatScore(cumulativeScore)
+                      : formatScore(score.finalScore)}
+                  </strong>
+                  <span>{hasCumul ? "Cumul" : "Score"}</span>
                 </>
               )}
             </div>
@@ -114,10 +137,17 @@ export function CompetitionScoreboard({
             </span>
           </article>
           <article className="comp-score-card">
-            <p className="muted">Score phase</p>
+            <p className="muted">Points parcours</p>
             <strong>
-              {juryPending ? "—" : formatScore(score.finalScore)}
+              {hasCumul
+                ? formatParcoursNote(cumulativeScore, phaseCount)
+                : juryPending
+                  ? "—"
+                  : formatScore(score.finalScore)}
             </strong>
+            <span className="comp-score-sub">
+              / {100 * phaseCount} · hors E0
+            </span>
           </article>
         </div>
       ) : null}

@@ -1202,6 +1202,12 @@ select:focus-visible {
   font-weight: 650;
 }
 
+.artist-card-cumul-line {
+  font-size: 0.82rem;
+  color: rgba(244, 239, 230, 0.85);
+  font-weight: 650;
+}
+
 .artist-card-fallback {
   display: grid;
   place-items: center;
@@ -3956,6 +3962,173 @@ select:focus-visible {
   .comp-score-ring {
     animation: none;
   }
+}
+
+.jury-feedback {
+  margin: 0 0 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.jury-feedback-head h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-family: var(--font-display), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: clamp(1.4rem, 3.2vw, 1.9rem);
+}
+
+.jury-feedback-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.jury-feedback-card {
+  padding: 1.1rem 1.05rem 1.2rem;
+  border: 1px solid var(--line);
+  background: rgba(12, 11, 10, 0.5);
+  display: grid;
+  gap: 0.95rem;
+}
+
+.jury-feedback-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.jury-feedback-card-head h3 {
+  margin: 0.15rem 0 0;
+  font-size: 1.15rem;
+}
+
+.jury-feedback-ep {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 230, 0.55);
+}
+
+.jury-feedback-question {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(244, 239, 230, 0.78);
+  font-style: italic;
+}
+
+.jury-feedback-total {
+  display: grid;
+  gap: 0.15rem;
+  text-align: right;
+}
+
+.jury-feedback-total strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.35rem;
+  color: var(--lime);
+}
+
+.jury-feedback-criteria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.jury-feedback-criterion-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+  margin-bottom: 0.3rem;
+}
+
+.jury-feedback-meter {
+  display: block;
+  height: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.jury-feedback-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+}
+
+.jury-feedback-hints {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+}
+
+.jury-feedback-improve {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 90, 90, 0.28);
+  background: rgba(255, 90, 90, 0.06);
+}
+
+.jury-feedback-improve-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ff8a8a;
+  font-weight: 700;
+}
+
+.jury-feedback-improve ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+}
+
+.jury-feedback-solid {
+  margin: 0;
+  color: var(--lime);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.jury-feedback-jurors {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.55rem;
+}
+
+.jury-feedback-jurors-title {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 230, 0.55);
+}
+
+.jury-feedback-jurors ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.jury-feedback-juror-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+}
+
+.jury-feedback-juror-split {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 /* Fan engagement: streak, buzz, library */

@@ -11,7 +11,13 @@ import {
 } from "@/lib/jury";
 import { formatJuryNote } from "@/lib/scoring";
 import { JuryScoreForm } from "@/components/JuryScoreForm";
+import { SubmissionDeadlineForm } from "@/components/SubmissionDeadlineForm";
+import { TrackLockOverlay } from "@/components/TrackLockOverlay";
 import { COMPETITION_BRAND } from "@/lib/parcours";
+import {
+  formatDoualaDateTime,
+  getTrackListenState,
+} from "@/lib/submission-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +63,18 @@ export default async function JuryHomePage() {
     ? await prisma.phaseEntry.findMany({
         where: { phaseId: activePhase.id, status: "active" },
         include: {
-          candidate: true,
-          juryScores: { include: { jury: true }, orderBy: { jury: { name: "asc" } } },
+          candidate: {
+            include: {
+              tracks: {
+                where: { phaseId: activePhase.id },
+                take: 1,
+              },
+            },
+          },
+          juryScores: {
+            include: { jury: true },
+            orderBy: { jury: { name: "asc" } },
+          },
         },
         orderBy: { candidate: { stageName: "asc" } },
       })
@@ -93,18 +109,40 @@ export default async function JuryHomePage() {
               Barème officiel sur 100 points. Remplis chaque critère puis
               enregistre.
             </p>
+            {activePhase.submissionDeadlineAt ? (
+              <p className="muted" style={{ marginTop: "0.65rem" }}>
+                Délai soumission :{" "}
+                {formatDoualaDateTime(activePhase.submissionDeadlineAt)}. Écoute
+                jury possible 1 h avant. Public à l&apos;heure dite.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="admin-card">
+            <SubmissionDeadlineForm
+              phaseId={activePhase.id}
+              phaseLabel={`E${activePhase.number} · ${activePhase.theme ?? activePhase.title}`}
+              deadline={activePhase.submissionDeadlineAt}
+            />
           </div>
 
           <div className="jury-entry-list">
             {entries.map((entry) => {
               const mine = entry.juryScores.find((s) => s.juryId === jury.id);
               const received = entry.juryScores.length;
+              const track = entry.candidate.tracks[0] ?? null;
+              const listen = getTrackListenState({
+                deadline: activePhase.submissionDeadlineAt,
+                role: "jury",
+              });
 
               return (
                 <article key={entry.id} className="admin-card jury-entry-card">
                   <div className="jury-entry-head">
                     <div>
-                      <h2 className="admin-form-title">{entry.candidate.stageName}</h2>
+                      <h2 className="admin-form-title">
+                        {entry.candidate.stageName}
+                      </h2>
                       <p className="muted">
                         {entry.candidate.city ?? "Cameroun"} · Notes reçues{" "}
                         {received}/{EXPECTED_JURY_COUNT}
@@ -122,6 +160,45 @@ export default async function JuryHomePage() {
                       )}
                     </div>
                   </div>
+
+                  {track ? (
+                    <div className="jury-track-listen">
+                      {listen.locked && listen.unlockAt ? (
+                        <TrackLockOverlay
+                          unlockAt={listen.unlockAt.toISOString()}
+                          message={listen.message}
+                        />
+                      ) : null}
+                      {listen.canListen ? (
+                        <>
+                          {listen.juryPreview ? (
+                            <p className="muted jury-preview-flag">
+                              {listen.message}
+                            </p>
+                          ) : null}
+                          {track.lateSubmission ? (
+                            <p className="track-late-flag">
+                              Upload en retard · -1.5 sur la note de phase
+                            </p>
+                          ) : null}
+                          <audio
+                            controls
+                            preload="none"
+                            src={track.audioUrl}
+                            className="phase-audio-player"
+                          >
+                            Lecteur audio
+                          </audio>
+                        </>
+                      ) : (
+                        <p className="muted">
+                          {listen.message ?? "Son encore sous cadenas."}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="muted">Aucun son soumis pour cette phase.</p>
+                  )}
 
                   {entry.juryScores.length > 0 ? (
                     <p className="muted jury-score-list">

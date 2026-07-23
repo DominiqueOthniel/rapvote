@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getCandidateSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { deletePhaseAudioFile } from "@/lib/upload";
+import { isLateSubmission } from "@/lib/submission-deadline";
 
 const schema = z.object({
   phaseId: z.string().min(1),
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
     },
   });
 
+  const now = new Date();
+  const late = isLateSubmission(now, phase.submissionDeadlineAt);
+
   if (existing) {
     await deletePhaseAudioFile(existing.audioUrl);
     await prisma.phaseTrack.update({
@@ -61,6 +65,8 @@ export async function POST(request: Request) {
           parsed.data.lyrics !== undefined
             ? parsed.data.lyrics || null
             : existing.lyrics,
+        submittedAt: now,
+        lateSubmission: late,
       },
     });
   } else {
@@ -71,6 +77,8 @@ export async function POST(request: Request) {
         audioUrl: parsed.data.publicUrl,
         title: parsed.data.title || null,
         lyrics: parsed.data.lyrics || null,
+        submittedAt: now,
+        lateSubmission: late,
       },
     });
   }

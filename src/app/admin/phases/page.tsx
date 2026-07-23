@@ -24,6 +24,7 @@ import {
   weightsForPhase,
 } from "@/lib/scoring";
 import { formatVotes } from "@/lib/money";
+import { SubmissionDeadlineForm } from "@/components/SubmissionDeadlineForm";
 
 export const dynamic = "force-dynamic";
 
@@ -166,9 +167,20 @@ export default async function AdminPhasesPage() {
     await syncPhaseEntryVotes(active.id);
   }
 
+  const lateTracks = active
+    ? await prisma.phaseTrack.findMany({
+        where: { phaseId: active.id },
+        select: { candidateId: true, lateSubmission: true },
+      })
+    : [];
+  const lateByCandidate = new Map(
+    lateTracks.map((track) => [track.candidateId, track.lateSubmission]),
+  );
+
   const entriesWithVotes = rawEntries.map((entry) => ({
     ...entry,
     votesCount: cumulativeVotes(entry),
+    lateSubmission: lateByCandidate.get(entry.candidateId) ?? false,
   }));
 
   const activeEntries = sortByFinalScore(
@@ -279,6 +291,15 @@ export default async function AdminPhasesPage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="admin-card">
+            <SubmissionDeadlineForm
+              phaseId={active.id}
+              phaseLabel={`E${active.number} · ${active.theme ?? active.title}`}
+              deadline={active.submissionDeadlineAt}
+            />
+          </div>
             <div className="score-rules-formula">
               {votesInScore
                 ? `Score final = (part votes × ${Math.round(weights.voteWeight * 100)}%) + (moyenne jury /100 × ${Math.round(weights.juryWeight * 100)}%)`
@@ -290,6 +311,14 @@ export default async function AdminPhasesPage() {
                 ? "aucun (lance le seed)"
                 : juries.map((j) => j.name).join(" · ")}
             </p>
+          </div>
+
+          <div className="admin-card">
+            <SubmissionDeadlineForm
+              phaseId={active.id}
+              phaseLabel={`E${active.number} · ${active.theme ?? active.title}`}
+              deadline={active.submissionDeadlineAt}
+            />
           </div>
 
           <div className="admin-card">
@@ -310,6 +339,7 @@ export default async function AdminPhasesPage() {
                     <th>Moyenne jury</th>
                     <th>Part jury</th>
                     <th>Score final</th>
+                    <th>Retard</th>
                     <th>Statut</th>
                     <th></th>
                   </tr>

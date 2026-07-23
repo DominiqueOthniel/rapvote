@@ -15,6 +15,10 @@ import {
   deletePhaseAudioFile,
   saveCandidatePhoto,
 } from "@/lib/upload";
+import {
+  formatDoualaDateTime,
+  LATE_SUBMISSION_PENALTY,
+} from "@/lib/submission-deadline";
 import { COMPETITION_BRAND } from "@/lib/parcours";
 import { getCandidateBalanceDue, getCandidatePaidConfirmedXaf, getCandidateInProgressXaf } from "@/lib/payouts";
 import { PhaseTrackUploadForm } from "@/components/PhaseTrackUploadForm";
@@ -307,6 +311,13 @@ export default async function CandidateDashboardPage() {
             <Link className="btn-ghost" href={`/candidats/${candidate.slug}`}>
               Voir ma page publique
             </Link>
+            {" · "}
+            <Link
+              className="btn-ghost"
+              href={`/candidats/${candidate.slug}#jury-feedback`}
+            >
+              Détail de mes notes jury
+            </Link>
           </p>
         </section>
 
@@ -467,6 +478,8 @@ export default async function CandidateDashboardPage() {
           ) : (
             phases.map((p) => {
               const track = trackByPhase.get(p.id);
+              const deadline = p.submissionDeadlineAt;
+              const late = Boolean(track?.lateSubmission);
               return (
                 <div key={p.id} className="phase-track-row">
                   <div>
@@ -482,6 +495,14 @@ export default async function CandidateDashboardPage() {
                           : "Son en ligne · sans lyrics"
                         : "Pas encore de son"}
                     </p>
+                    {deadline ? (
+                      <p className="muted">
+                        Délai : {formatDoualaDateTime(deadline)}
+                        {late
+                          ? ` · retard (-${LATE_SUBMISSION_PENALTY} pts)`
+                          : ""}
+                      </p>
+                    ) : null}
                     {track ? (
                       <audio
                         controls
