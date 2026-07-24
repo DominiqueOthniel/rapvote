@@ -28,7 +28,7 @@ import {
 import { getEpisodeByNumber } from "@/lib/parcours";
 import { EXPECTED_JURY_COUNT } from "@/lib/jury";
 import { getMaxVotes } from "@/lib/scoring";
-import { formatVotes, formatXaf } from "@/lib/money";
+import { formatVotes } from "@/lib/money";
 import { getTrackListenState } from "@/lib/submission-deadline";
 
 export const dynamic = "force-dynamic";
@@ -258,10 +258,6 @@ export default async function CandidatePage({ params }: Props) {
             <div>
               <p className="muted">Likes totaux</p>
               <strong>{formatVotes(totalLikes)}</strong>
-            </div>
-            <div>
-              <p className="muted">Gains artiste</p>
-              <strong>{formatXaf(candidate.totalEarnedXaf)}</strong>
             </div>
             {currentScore?.rank ? (
               <div>

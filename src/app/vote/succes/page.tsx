@@ -11,8 +11,6 @@ type Tx = {
   status: string;
   votesCount: number;
   amountXaf: number;
-  candidateShareXaf: number;
-  adminShareXaf: number;
   candidate: { stageName: string; slug: string };
 };
 
@@ -93,8 +91,6 @@ function SuccessInner() {
             <strong>{tx.candidate.stageName}</strong>
           </p>
           <p className="muted">Montant: {formatXaf(tx.amountXaf)}</p>
-          <p className="muted">Part artiste: {formatXaf(tx.candidateShareXaf)}</p>
-          <p className="muted">Part orga: {formatXaf(tx.adminShareXaf)}</p>
           <div className="success-actions">
             <Link className="btn-primary" href={`/candidats/${tx.candidate.slug}`}>
               Retour artiste

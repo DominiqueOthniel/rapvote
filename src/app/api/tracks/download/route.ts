@@ -96,31 +96,44 @@ export async function GET(request: Request) {
     );
   }
 
-  const [updated] = await Promise.all([
-    prisma.phaseTrack.update({
+  // Admin: téléchargement silencieux (pas de compteur, event, ni notif).
+  if (!admin) {
+    const [updated] = await Promise.all([
+      prisma.phaseTrack.update({
+        where: { id: track.id },
+        data: { downloadCount: { increment: 1 } },
+        select: { downloadCount: true },
+      }),
+      prisma.trackDownloadEvent.create({
+        data: {
+          trackId: track.id,
+          fanId: fan?.id ?? null,
+        },
+      }),
+    ]);
+
+    await createCandidateNotification({
+      candidateId: track.candidateId,
+      type: "download",
+      trackId: track.id,
+      title: `Nouveau téléchargement de ${trackLabel(track.title)}`,
+    });
+
+    if (countOnly) {
+      return NextResponse.json({
+        ok: true,
+        downloadCount: updated.downloadCount,
+      });
+    }
+  } else if (countOnly) {
+    const current = await prisma.phaseTrack.findUnique({
       where: { id: track.id },
-      data: { downloadCount: { increment: 1 } },
       select: { downloadCount: true },
-    }),
-    prisma.trackDownloadEvent.create({
-      data: {
-        trackId: track.id,
-        fanId: fan?.id ?? null,
-      },
-    }),
-  ]);
-
-  await createCandidateNotification({
-    candidateId: track.candidateId,
-    type: "download",
-    trackId: track.id,
-    title: `Nouveau téléchargement de ${trackLabel(track.title)}`,
-  });
-
-  if (countOnly) {
+    });
     return NextResponse.json({
       ok: true,
-      downloadCount: updated.downloadCount,
+      downloadCount: current?.downloadCount ?? 0,
+      silent: true,
     });
   }
 

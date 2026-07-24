@@ -55,6 +55,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Admin: écoute sans traces (ni compteur, ni engagement fan).
+  if (admin) {
+    const current = await prisma.phaseTrack.findUnique({
+      where: { id: track.id },
+      select: { playCount: true },
+    });
+    return NextResponse.json({
+      ok: true,
+      playCount: current?.playCount ?? 0,
+      engagement: null,
+      silent: true,
+    });
+  }
+
   const updated = await prisma.phaseTrack.update({
     where: { id: track.id },
     data: { playCount: { increment: 1 } },

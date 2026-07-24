@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { uniqueCandidateSlug } from "@/lib/competition";
+import { getEpisodeByNumber } from "@/lib/parcours";
 import { deleteCandidatePhotoFile, saveCandidatePhoto } from "@/lib/upload";
 import { DeleteCandidateButton } from "@/components/admin/DeleteCandidateButton";
 
@@ -96,6 +97,16 @@ export default async function EditCandidatePage({ params }: Props) {
   const candidate = await prisma.candidate.findUnique({ where: { id } });
   if (!candidate) notFound();
 
+  const tracks = await prisma.phaseTrack.findMany({
+    where: { candidateId: candidate.id },
+    include: {
+      phase: {
+        select: { number: true, title: true, theme: true },
+      },
+    },
+    orderBy: { phase: { number: "asc" } },
+  });
+
   return (
     <main>
       <div className="admin-page-head">
@@ -163,6 +174,53 @@ export default async function EditCandidatePage({ params }: Props) {
           </Link>
         </div>
       </form>
+
+      <section className="admin-card">
+        <h2 className="admin-form-title">Sons (écoute privée)</h2>
+        <p className="muted">
+          Écoute et téléchargement admin sans traces (pas de compteurs, events
+          ni notifications).
+        </p>
+        {tracks.length === 0 ? (
+          <p className="muted">Aucun son uploadé pour ce candidat.</p>
+        ) : (
+          <ul className="admin-track-list">
+            {tracks.map((track) => {
+              const episode = getEpisodeByNumber(track.phase.number);
+              const phaseLabel = episode
+                ? `${episode.code} · ${episode.title}`
+                : `E${track.phase.number} · ${track.phase.theme ?? track.phase.title}`;
+              const title =
+                track.title?.trim() || `Son · ${candidate.stageName}`;
+              return (
+                <li key={track.id} className="admin-track-item">
+                  <div className="admin-track-meta">
+                    <strong>{title}</strong>
+                    <span className="muted">{phaseLabel}</span>
+                    {track.lateSubmission ? (
+                      <span className="muted">Retard</span>
+                    ) : null}
+                  </div>
+                  <audio
+                    controls
+                    preload="metadata"
+                    src={track.audioUrl}
+                    className="phase-audio-player"
+                  >
+                    Lecteur audio
+                  </audio>
+                  <a
+                    className="btn-secondary"
+                    href={`/api/tracks/download?trackId=${encodeURIComponent(track.id)}`}
+                  >
+                    Télécharger
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <div className="admin-card admin-danger-zone">
         <h2 className="admin-form-title">Zone danger</h2>
